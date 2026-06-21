@@ -1,0 +1,51 @@
+
+> paq-product-launch-os@0.1.0 dev
+> next dev
+
+   ▲ Next.js 15.5.19
+   - Local:        http://localhost:3000
+   - Network:      http://192.168.0.143:3000
+
+ ✓ Starting...
+ ✓ Ready in 1397ms
+ ○ Compiling / ...
+ ✓ Compiled / in 855ms (659 modules)
+ GET / 200 in 1281ms
+ ✓ Compiled /products/new in 440ms (719 modules)
+ GET /products/new 200 in 560ms
+ ✓ Compiled /products/[id]/report in 354ms (788 modules)
+ GET /products/arc-snap-power-bank/report 200 in 775ms
+ GET /products/new 200 in 41ms
+ ○ Compiling /dashboard ...
+ ✓ Compiled /dashboard in 879ms (820 modules)
+ GET /dashboard 200 in 963ms
+ ✓ Compiled in 135ms (320 modules)
+ GET /dashboard 200 in 79ms
+ GET /dashboard 200 in 21ms
+ GET /dashboard 200 in 20ms
+ GET /products/new 200 in 26ms
+ GET / 200 in 109ms
+ GET / 200 in 365ms
+ GET /products/new 200 in 81ms
+ GET /products/arc-snap-power-bank/report 200 in 211ms
+ GET / 200 in 334ms
+ GET /products/new 200 in 27ms
+ GET /dashboard 200 in 24ms
+ GET /products/island-paper-bookmark/report 200 in 42ms
+ GET /products/island-paper-bookmark/report 200 in 35ms
+ GET /products/island-paper-bookmark/report 200 in 35ms
+ GET /products/island-paper-bookmark/report 200 in 38ms
+ GET /products/island-paper-bookmark/report 200 in 33ms
+ ✓ Compiled in 1296ms (818 modules)
+ ✓ Compiled in 450ms (818 modules)
+ ✓ Compiled in 280ms (818 modules)
+ ✓ Compiled in 376ms (818 modules)
+ ✓ Compiled in 295ms (818 modules)
+ ✓ Compiled in 273ms (818 modules)
+ ✓ Compiled in 409ms (818 modules)
+ ✓ Compiled in 378ms (820 modules)
+ ✓ Compiled in 251ms (820 modules)
+ ✓ Compiled in 198ms (820 modules)
+ ✓ Compiled in 220ms (820 modules)
+ ✓ Compiled in 286ms (820 modules)
+[?25h

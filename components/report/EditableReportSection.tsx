@@ -36,6 +36,27 @@ function getReviewTone(status: ReportReviewStatus) {
   return "neutral";
 }
 
+async function copyText(content: string) {
+  try {
+    await navigator.clipboard.writeText(content);
+    return true;
+  } catch {
+    const textarea = document.createElement("textarea");
+    textarea.value = content;
+    textarea.setAttribute("readonly", "");
+    textarea.style.position = "fixed";
+    textarea.style.left = "-9999px";
+    textarea.style.top = "0";
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+
+    const didCopy = document.execCommand("copy");
+    textarea.remove();
+    return didCopy;
+  }
+}
+
 type EditableReportSectionProps = {
   section: ReviewedReportSection;
   onSave: (sectionId: string, newContent: string) => void;
@@ -47,14 +68,14 @@ export function EditableReportSection({
   onSave,
   onStatusChange
 }: EditableReportSectionProps) {
-  const [copied, setCopied] = useState(false);
+  const [copyMessage, setCopyMessage] = useState("");
   const [isEditing, setIsEditing] = useState(false);
   const [draftContent, setDraftContent] = useState(section.content);
 
   async function copySection() {
-    await navigator.clipboard.writeText(`${section.title}\n\n${section.content}`);
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1600);
+    const didCopy = await copyText(`${section.title}\n\n${section.content}`);
+    setCopyMessage(didCopy ? "已複製此段內容" : "無法自動複製，請手動選取內容");
+    window.setTimeout(() => setCopyMessage(""), 1600);
   }
 
   function startEditing() {
@@ -77,7 +98,7 @@ export function EditableReportSection({
   }
 
   return (
-    <article className="surface scroll-mt-24 p-5" id={section.id}>
+    <article className="surface scroll-mt-24 overflow-hidden p-5" id={section.id}>
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <h2 className="text-xl font-semibold text-ink">{section.title}</h2>
@@ -99,10 +120,10 @@ export function EditableReportSection({
         />
       </div>
 
-      {copied ? (
+      {copyMessage ? (
         <div className="mt-4 inline-flex items-center gap-2 rounded-md bg-teal-50 px-3 py-2 text-xs font-semibold text-teal-600">
           <Check size={14} aria-hidden="true" />
-          已複製 section
+          {copyMessage}
         </div>
       ) : null}
 
@@ -116,16 +137,16 @@ export function EditableReportSection({
           <div className="flex flex-wrap justify-end gap-2">
             <Button variant="ghost" size="sm" onClick={cancelEditing}>
               <X size={16} aria-hidden="true" />
-              Cancel
+              取消
             </Button>
             <Button size="sm" onClick={saveContent} disabled={!draftContent.trim()}>
               <Save size={16} aria-hidden="true" />
-              Save
+              儲存
             </Button>
           </div>
         </div>
       ) : (
-        <div className="mt-5 whitespace-pre-line text-sm leading-7 text-graphite/82">
+        <div className="mt-5 rounded-md border border-line bg-mist/70 p-4 whitespace-pre-line text-sm leading-7 text-graphite/82">
           {section.content}
         </div>
       )}

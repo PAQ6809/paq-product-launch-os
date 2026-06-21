@@ -388,12 +388,6 @@ function formatFaqs(items: FAQ[]) {
   return items.map((item) => `Q：${item.question}\nA：${item.answer}`).join("\n\n");
 }
 
-function formatChecklist(items: LaunchChecklistItem[]) {
-  return items
-    .map((item, index) => `${index + 1}. [${item.phase}] ${item.task}\n建議負責：${item.ownerHint}`)
-    .join("\n\n");
-}
-
 function formatFirstMonthPlan(items: FirstMonthMarketingPlanItem[]) {
   return items
     .map(
@@ -456,9 +450,19 @@ ${formatList(report.packagingBrief.complianceNotes)}`,
     ),
     section("front-packaging-copy", "包裝正面文案", report.frontPackagingCopy, "high"),
     section("back-packaging-copy", "包裝背面文案", report.backPackagingCopy, "high"),
-    section("product-title", "商品頁標題", report.productTitle, "medium"),
-    section("short-description", "商品短描述", report.shortDescription, "medium"),
-    section("long-description", "商品長描述", report.longDescription, "medium"),
+    section(
+      "listing-copy",
+      "商品頁文案",
+      `商品頁標題
+${report.productTitle}
+
+商品短描述
+${report.shortDescription}
+
+商品長描述
+${report.longDescription}`,
+      "medium"
+    ),
     section("seo-keywords", "SEO 關鍵字", report.seoKeywords.join("、"), "low"),
     section("social-posts", "IG / Threads / TikTok 文案", formatSocialPosts(report.socialPosts), "low"),
     section("video-scripts", "短影音腳本", formatVideoScripts(report.videoScripts), "medium"),
@@ -471,8 +475,16 @@ ${formatList(report.packagingBrief.complianceNotes)}`,
         .join("\n\n"),
       "medium"
     ),
-    section("launch-checklist", "上架檢查清單", formatChecklist(report.launchChecklist), "medium"),
     section("first-month-marketing-plan", "首月行銷計畫", formatFirstMonthPlan(report.firstMonthMarketingPlan), "medium"),
-    section("optimization-suggestions", "銷售後優化建議", formatOptimization(report.optimizationSuggestions), "low")
+    section("optimization-suggestions", "銷售後優化建議", formatOptimization(report.optimizationSuggestions), "low"),
+    section(
+      "legal-risk-notes",
+      "法規與風險提醒",
+      `1. AI 產出內容需人工審核，不可直接視為正式法規、商標、版權、醫療、美妝、食品或保健品合規建議。
+2. 包裝設計、照片、插圖、字體、音樂與素材需確認商用授權。
+3. 食品、美妝、保健與醫療相關商品不得宣稱療效、治療、改善疾病或保證效果。
+4. 實際上架前需依 Shopify、蝦皮、Pinkoi、TikTok Shop 等平台規則與當地法規再次檢查。`,
+      "high"
+    )
   ];
 }

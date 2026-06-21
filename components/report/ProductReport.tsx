@@ -4,11 +4,13 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { AlertTriangle, ArrowLeft, History, UserCheck } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
+import { LifecycleProgress } from "@/components/product/LifecycleProgress";
 import { EditableReportSection } from "@/components/report/EditableReportSection";
 import { ExportButtonGroup } from "@/components/report/ExportButtonGroup";
 import { ReportToc } from "@/components/report/ReportToc";
 import { generateMockLaunchReport, launchReportToSections } from "@/lib/ai/mock-generate-launch-report";
 import { findDemoProduct } from "@/lib/storage/local-demo-store";
+import { formatCurrency, lifecycleLabels } from "@/lib/utils";
 import type {
   LaunchReport,
   Product,
@@ -52,6 +54,21 @@ function productToReport(product: Product): LaunchReport {
     salesChannels: product.salesPlatforms,
     imageUrl: product.imageUrl
   });
+}
+
+function formatChannels(channels: string[]) {
+  return channels.length > 0 ? channels.join("、") : "尚未設定";
+}
+
+function getPositioningOneLiner(positioning: string) {
+  const firstSentence = positioning.split("。")[0]?.trim();
+  const source = firstSentence || positioning.trim();
+
+  if (source.length <= 86) {
+    return source;
+  }
+
+  return `${source.slice(0, 86)}...`;
 }
 
 function toReviewedSections(sections: ReportSection[]): ReviewedReportSection[] {
@@ -148,6 +165,11 @@ function buildExportReport(report: LaunchReport, sections: ReviewedReportSection
   next.productTitle = edits.get("product-title") ?? next.productTitle;
   next.shortDescription = edits.get("short-description") ?? next.shortDescription;
   next.longDescription = edits.get("long-description") ?? next.longDescription;
+
+  const listingCopy = edits.get("listing-copy");
+  if (listingCopy) {
+    next.longDescription = listingCopy;
+  }
 
   const keySellingPoints = edits.get("key-selling-points");
   if (keySellingPoints) {
@@ -272,6 +294,73 @@ function buildExportReport(report: LaunchReport, sections: ReviewedReportSection
   }
 
   return next;
+}
+
+function ReportSummary({ product, report }: { product: Product; report: LaunchReport }) {
+  const summaryItems = [
+    { label: "商品名稱", value: product.name },
+    { label: "商品類別", value: product.category },
+    { label: "建議售價", value: formatCurrency(report.pricingStrategy.suggestedPrice) },
+    { label: "目標客群", value: product.targetAudience },
+    { label: "主要銷售通路", value: formatChannels(product.salesPlatforms) },
+    { label: "目前生命週期狀態", value: lifecycleLabels[product.lifecycleStatus] }
+  ];
+
+  return (
+    <section className="surface p-5 sm:p-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <Badge tone="teal">上市企劃摘要</Badge>
+          <h2 className="mt-3 text-2xl font-semibold text-ink">這份報告先看這裡</h2>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-graphite/75">
+            先用一頁摘要抓住商品定位、價格、客群與通路，再往下看完整上市企劃細節。
+          </p>
+        </div>
+        <Badge tone="amber">{lifecycleLabels[product.lifecycleStatus]}</Badge>
+      </div>
+
+      <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        {summaryItems.map((item) => (
+          <div key={item.label} className="rounded-md border border-line bg-white p-4">
+            <p className="text-xs font-semibold text-graphite/55">{item.label}</p>
+            <p className="mt-2 text-sm font-semibold leading-6 text-ink">{item.value}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-3 rounded-md border border-teal-100 bg-teal-50 p-4">
+        <p className="text-xs font-semibold text-teal-700">核心定位一句話</p>
+        <p className="mt-2 text-sm font-semibold leading-6 text-ink">
+          {getPositioningOneLiner(report.positioning)}
+        </p>
+      </div>
+    </section>
+  );
+}
+
+function LegalRiskPanel() {
+  const items = [
+    "AI 產出內容需人工審核，不可直接作為正式上架或對外宣稱。",
+    "包裝設計、商品圖片、插圖、字體、音樂與素材需確認商用授權。",
+    "食品、美妝、保健、醫療相關商品不得宣稱療效、治療、改善疾病或保證效果。",
+    "實際上架前需依銷售平台規則與當地法規檢查分類、標示、廣告語與禁售規範。"
+  ];
+
+  return (
+    <section className="rounded-md border border-amber-100 bg-amber-50 p-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+        <AlertTriangle className="h-5 w-5 shrink-0 text-amber-700" aria-hidden="true" />
+        <div>
+          <h2 className="text-lg font-semibold text-ink">法規與風險提醒</h2>
+          <ul className="mt-3 grid gap-2 text-sm leading-6 text-amber-800">
+            {items.map((item) => (
+              <li key={item}>- {item}</li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </section>
+  );
 }
 
 function AuditLogPanel({ entries }: { entries: ReportAuditLogEntry[] }) {
@@ -476,18 +565,18 @@ export function ProductReport({ product, requestedProductId }: ProductReportProp
         </Link>
         <div className="mt-5 flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <Badge tone="teal">目前為 Mock AI Demo</Badge>
+            <Badge tone="teal">Demo Mode · 使用範例資料展示流程</Badge>
             <h1 className="mt-4 text-3xl font-semibold text-ink sm:text-4xl">
               {activeProduct.name} 商品上市企劃報告
             </h1>
             <p className="mt-3 max-w-3xl text-sm leading-6 text-graphite/75">
-              這份報告由 mock workflow 依商品資料產生，尚未呼叫正式 AI API。每個 section 都可以 Copy、Edit、Approve、Reject；被修改的內容會標記 human_edited，並留下 audit log mock。
+              這份報告使用範例資料展示完整流程，內容可複製、可匯出，也可在每個 section 進行人工編輯與審核。
             </p>
           </div>
         </div>
         <div className="mt-5 flex flex-wrap gap-2">
-          <Badge tone="amber">{sections.length} 個 section</Badge>
-          <Badge tone="coral">{highRiskCount} 個高風險 section</Badge>
+          <Badge tone="amber">{sections.length} 個報告 section</Badge>
+          <Badge tone="coral">{highRiskCount} 個需審核 section</Badge>
           <Badge tone="amber">{editedCount} 個 human_edited</Badge>
           <Badge tone="teal">{approvedCount} 個 approved</Badge>
           {rejectedCount > 0 ? <Badge tone="coral">{rejectedCount} 個 rejected</Badge> : null}
@@ -496,13 +585,10 @@ export function ProductReport({ product, requestedProductId }: ProductReportProp
 
       <ExportButtonGroup report={exportReport} fileBaseName={activeProduct.id} />
 
-      <section className="rounded-md border border-amber-100 bg-amber-100/60 p-4">
-        <div className="flex gap-3">
-          <AlertTriangle className="mt-1 h-5 w-5 shrink-0 text-amber-700" aria-hidden="true" />
-          <p className="text-sm leading-6 text-amber-700">
-            AI 內容不可直接視為法規、商標、醫療、美妝、食品或保健品合規建議。正式對外使用前，請由真人審核所有療效、保證、比較、圖像授權與平台規則。
-          </p>
-        </div>
+      <ReportSummary product={activeProduct} report={exportReport} />
+
+      <section className="surface p-5 sm:p-6">
+        <LifecycleProgress status={activeProduct.lifecycleStatus} />
       </section>
 
       <section className="rounded-md border border-teal-100 bg-teal-50 p-4">
@@ -527,6 +613,8 @@ export function ProductReport({ product, requestedProductId }: ProductReportProp
           ))}
         </div>
       </div>
+
+      <LegalRiskPanel />
 
       <AuditLogPanel entries={auditLogs} />
     </div>

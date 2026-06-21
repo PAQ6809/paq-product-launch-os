@@ -1,5 +1,14 @@
 import type { LaunchReport } from "@/types/report";
 
+const forbiddenMarketingClaimTerms = [
+  "保證有效",
+  "治療",
+  "改善疾病",
+  "醫療功效",
+  "保證銷售",
+  "月收保證"
+];
+
 type ValidationResult =
   | {
       ok: true;
@@ -282,4 +291,27 @@ export function assertValidLaunchReport(payload: unknown): LaunchReport {
   }
 
   return result.report;
+}
+
+export function assertNoForbiddenMarketingClaims(report: LaunchReport) {
+  const claimSensitiveText = [
+    report.positioning,
+    report.targetAudienceAnalysis,
+    report.frontPackagingCopy,
+    report.backPackagingCopy,
+    report.productTitle,
+    report.shortDescription,
+    report.longDescription,
+    ...report.keySellingPoints,
+    ...report.socialPosts.flatMap((post) => [post.caption, post.cta]),
+    ...report.videoScripts.flatMap((script) => [script.title, script.hook, script.cta, ...script.scenes]),
+    ...report.faqs.flatMap((faq) => [faq.question, faq.answer]),
+    ...report.customerServiceScripts.flatMap((script) => [script.scenario, script.response])
+  ].join("\n");
+
+  const matchedTerms = forbiddenMarketingClaimTerms.filter((term) => claimSensitiveText.includes(term));
+
+  if (matchedTerms.length > 0) {
+    throw new Error(`Forbidden marketing claim terms found: ${matchedTerms.join(", ")}`);
+  }
 }

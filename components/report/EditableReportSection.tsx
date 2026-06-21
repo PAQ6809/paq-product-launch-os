@@ -103,6 +103,7 @@ export function EditableReportSection({
         <div>
           <h2 className="text-xl font-semibold text-ink">{section.title}</h2>
           <div className="mt-3 flex flex-wrap gap-2">
+            <Badge tone="teal">AI generated</Badge>
             <Badge tone={getRiskTone(section.riskLevel)}>{riskLabels[section.riskLevel]}</Badge>
             <Badge tone={getReviewTone(section.reviewStatus)}>
               {reviewLabels[section.reviewStatus]}

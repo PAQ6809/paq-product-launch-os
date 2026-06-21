@@ -8,7 +8,9 @@ import { Button } from "@/components/ui/Button";
 import { Field, inputClassName } from "@/components/ui/Field";
 import { MockImageUpload } from "@/components/product/MockImageUpload";
 import { generateMockLaunchReport, launchReportToSections } from "@/lib/ai/mock-generate-launch-report";
+import type { GenerateReportApiResponse } from "@/lib/ai/provider";
 import { createProductFromDraft, upsertDemoProduct } from "@/lib/storage/local-demo-store";
+import { upsertStoredLaunchReport } from "@/lib/storage/local-report-store";
 import { formatCurrency } from "@/lib/utils";
 import type { LaunchReport, NewProductDraft } from "@/types";
 
@@ -27,6 +29,7 @@ export function ProductForm() {
   const router = useRouter();
   const [draft, setDraft] = useState(initialDraft);
   const [generatedReport, setGeneratedReport] = useState<LaunchReport | null>(null);
+  const [generationMessage, setGenerationMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const generatedSections = useMemo(
@@ -38,14 +41,15 @@ export function ProductForm() {
     setDraft((current) => ({ ...current, [field]: value }));
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsSubmitting(true);
+    setGenerationMessage("");
 
     const product = createProductFromDraft(draft);
     upsertDemoProduct(product);
 
-    const report = generateMockLaunchReport({
+    const input = {
       productName: product.name,
       category: product.category,
       features: product.features,
@@ -55,10 +59,58 @@ export function ProductForm() {
       brandStyle: product.brandStyle,
       salesChannels: product.salesPlatforms,
       imageUrl: product.imageUrl
-    });
+    };
 
-    setGeneratedReport(report);
-    router.push(`/products/${product.id}/report`);
+    try {
+      const response = await fetch("/api/generate-report", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(input)
+      });
+
+      if (!response.ok) {
+        throw new Error(`Generate report API failed with ${response.status}`);
+      }
+
+      const result = (await response.json()) as GenerateReportApiResponse;
+      upsertStoredLaunchReport({
+        productId: product.id,
+        report: result.report,
+        provider: result.provider,
+        requestedProvider: result.requestedProvider,
+        isFallback: result.isFallback,
+        isAiGenerated: result.isAiGenerated,
+        warning: result.warning,
+        generatedAt: new Date().toISOString()
+      });
+      setGeneratedReport(result.report);
+      setGenerationMessage(result.warning ?? `已使用 ${result.provider} provider 產生報告。`);
+      router.push(`/products/${product.id}/report`);
+    } catch (error) {
+      const fallbackReport = generateMockLaunchReport(input);
+      const warning =
+        error instanceof Error
+          ? `API route 無法使用，已改用 MockAIProvider：${error.message}`
+          : "API route 無法使用，已改用 MockAIProvider。";
+
+      upsertStoredLaunchReport({
+        productId: product.id,
+        report: fallbackReport,
+        provider: "mock",
+        requestedProvider: "mock",
+        isFallback: true,
+        isAiGenerated: true,
+        warning,
+        generatedAt: new Date().toISOString()
+      });
+      setGeneratedReport(fallbackReport);
+      setGenerationMessage(warning);
+      router.push(`/products/${product.id}/report`);
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -73,7 +125,7 @@ export function ProductForm() {
               建立商品上市企劃
             </h1>
             <p className="mt-3 text-sm leading-6 text-graphite/72">
-              填入商品資料後，系統會用 Mock AI workflow 產生上市企劃書，並將商品保存在 localStorage。v0.2 尚未接正式 AI 與資料庫。
+              填入商品資料後，系統會透過 server-side API route 產生上市企劃書；沒有 API key 時會自動使用 Mock Demo fallback，並將商品與報告保存在 localStorage。
             </p>
           </div>
 
@@ -168,8 +220,13 @@ export function ProductForm() {
 
           <Button type="submit" size="lg" className="w-full sm:w-auto" disabled={isSubmitting}>
             <WandSparkles size={18} aria-hidden="true" />
-            儲存並產生 Mock AI 報告
+            {isSubmitting ? "正在產生報告..." : "儲存並產生 AI 報告"}
           </Button>
+          {generationMessage ? (
+            <p className="rounded-md border border-amber-100 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-700">
+              {generationMessage}
+            </p>
+          ) : null}
         </div>
 
         <aside className="grid gap-4 self-start">
@@ -177,8 +234,8 @@ export function ProductForm() {
           <div className="surface p-5">
             <h2 className="text-base font-semibold text-ink">Demo 提醒</h2>
             <ul className="mt-3 grid gap-2 text-sm leading-6 text-graphite/75">
-              <li>目前不會呼叫正式 AI API。</li>
-              <li>商品與報告資料會先存在瀏覽器 localStorage。</li>
+              <li>OpenAI 呼叫只會發生在 server-side API route。</li>
+              <li>沒有 OPENAI_API_KEY 時會自動回到 Mock Demo。</li>
               <li>食品、美妝、保健、醫療類內容仍需人工與法規審核。</li>
             </ul>
           </div>
@@ -189,7 +246,7 @@ export function ProductForm() {
         <section className="surface grid gap-5 p-5 sm:p-6">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
-              <Badge tone="teal">Mock AI workflow 已產生</Badge>
+              <Badge tone="teal">AI report 已產生</Badge>
               <h2 className="mt-3 text-2xl font-semibold text-ink">{generatedReport.productTitle}</h2>
               <p className="mt-3 max-w-4xl text-sm leading-6 text-graphite/75">
                 {generatedReport.shortDescription}

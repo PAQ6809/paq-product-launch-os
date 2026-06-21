@@ -6,7 +6,7 @@ PAQ Product Launch OS 是一個商品上市 AI Demo：
 
 使用者輸入商品名稱、類別、功能、成本、預計售價、目標客群、品牌風格、銷售平台與商品圖片後，系統會整理商品定位、客群分析、競品差異、定價、包裝設計 brief、商品頁文案、SEO 關鍵字、社群貼文、短影音腳本、FAQ、客服話術、首月行銷計畫與銷售後優化建議。
 
-目前版本是可展示的 Mock AI Demo。系統不會呼叫正式 AI API，也不會寫入正式資料庫；資料會保存在 localStorage，方便 demo 與本機測試。
+目前版本是可展示的 AI Demo。預設使用 MockAIProvider；若設定 `AI_PROVIDER=openai` 與 `OPENAI_API_KEY`，會透過 server-side API route 呼叫 OpenAIProvider。資料仍保存在 localStorage，方便 demo 與本機測試。
 
 ## 功能列表
 
@@ -17,6 +17,7 @@ PAQ Product Launch OS 是一個商品上市 AI Demo：
 - Human review：每個 section 支援 Copy、Edit、Approve、Reject；編輯後會標記 human_edited。
 - 匯出功能：Export Markdown、Export JSON、Copy Full Report、Shopify、蝦皮、Pinkoi 與社群貼文包模板。
 - Local persistence：demo 商品與使用者建立的商品會保存在 localStorage。
+- AI provider：可切換 MockAIProvider / OpenAIProvider，沒有 API key 或 OpenAI 回傳格式錯誤時自動 fallback。
 
 ## 技術棧
 
@@ -25,6 +26,7 @@ PAQ Product Launch OS 是一個商品上市 AI Demo：
 - Tailwind CSS
 - Local component system
 - Mock AI workflow
+- Server-side AI API route
 - localStorage persistence
 - Frontend-only human-in-the-loop review state
 
@@ -75,11 +77,11 @@ npm run build
 
 對創業比賽或老師可以這樣介紹：
 
-> PAQ Product Launch OS 把小品牌上市商品時分散的決策流程整理成一個 AI-assisted workflow。MVP 先以 mock AI demo 驗證價值：商品資料輸入後，系統產出可複製、可匯出、可人工審核的上市企劃報告；未來再接 OpenAI API、Supabase 與平台整合。
+> PAQ Product Launch OS 把小品牌上市商品時分散的決策流程整理成一個 AI-assisted workflow。MVP 先以 demo flow 驗證價值：商品資料輸入後，系統透過 MockAIProvider 或 OpenAIProvider 產出可複製、可匯出、可人工審核的上市企劃報告；未來再接 Supabase 與平台整合。
 
 ## 目前限制
 
-- 目前仍為 Mock AI Demo，尚未呼叫 OpenAI API。
+- 預設仍為 Mock Demo；只有設定 `AI_PROVIDER=openai` 與 `OPENAI_API_KEY` 才會呼叫 OpenAI API。
 - 目前不串 Shopify、蝦皮、Pinkoi、TikTok Shop 或任何平台 API。
 - 目前不保證 AI 圖片、包裝設計或文案可直接商用。
 - 食品、美妝、保健與醫療商品不得宣稱療效，正式使用前必須人工審核。
@@ -110,8 +112,8 @@ npm run build
 
 ## Roadmap
 
-- v0.3：AI provider interface，可切換 MockAIProvider / OpenAIProvider。
-- v0.4：OpenAI JSON output、validator、fallback 與 ai_generation_logs。
+- v0.3：已加入 AI provider interface，可切換 MockAIProvider / OpenAIProvider。
+- v0.4：ai_generation_logs、provider telemetry 與更完整的錯誤追蹤。
 - v0.5：Supabase products、reports、audit logs、RLS。
 - v0.6：圖片上傳、素材管理與包裝 brief 工作流。
 - v0.7：平台模板強化、團隊審核與展示案例管理。

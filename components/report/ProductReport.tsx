@@ -10,6 +10,7 @@ import { ExportButtonGroup } from "@/components/report/ExportButtonGroup";
 import { ReportToc } from "@/components/report/ReportToc";
 import { generateMockLaunchReport, launchReportToSections } from "@/lib/ai/mock-generate-launch-report";
 import { findDemoProduct } from "@/lib/storage/local-demo-store";
+import { findStoredLaunchReport, type StoredLaunchReport } from "@/lib/storage/local-report-store";
 import { formatCurrency, lifecycleLabels } from "@/lib/utils";
 import type {
   LaunchReport,
@@ -415,6 +416,7 @@ function AuditLogPanel({ entries }: { entries: ReportAuditLogEntry[] }) {
 
 export function ProductReport({ product, requestedProductId }: ProductReportProps) {
   const [activeProduct, setActiveProduct] = useState(product);
+  const [storedReport, setStoredReport] = useState<StoredLaunchReport | null>(null);
   const expectsLocalProduct = Boolean(requestedProductId && requestedProductId !== product.id);
   const [lookupState, setLookupState] = useState<"pending" | "ready" | "missing">(
     expectsLocalProduct ? "pending" : "ready"
@@ -426,6 +428,7 @@ export function ProductReport({ product, requestedProductId }: ProductReportProp
 
     if (storedProduct) {
       setActiveProduct(storedProduct);
+      setStoredReport(findStoredLaunchReport(storedProduct.id));
       setLookupState("ready");
       return;
     }
@@ -436,10 +439,14 @@ export function ProductReport({ product, requestedProductId }: ProductReportProp
     }
 
     setActiveProduct(product);
+    setStoredReport(findStoredLaunchReport(product.id));
     setLookupState("ready");
   }, [product, requestedProductId]);
 
-  const initialReport = useMemo(() => productToReport(activeProduct), [activeProduct]);
+  const initialReport = useMemo(
+    () => storedReport?.report ?? productToReport(activeProduct),
+    [activeProduct, storedReport]
+  );
   const initialSections = useMemo(
     () => toReviewedSections(launchReportToSections(initialReport)),
     [initialReport]
@@ -457,6 +464,8 @@ export function ProductReport({ product, requestedProductId }: ProductReportProp
   const editedCount = sections.filter((section) => section.humanEdited).length;
   const approvedCount = sections.filter((section) => section.reviewStatus === "approved").length;
   const rejectedCount = sections.filter((section) => section.reviewStatus === "rejected").length;
+  const providerLabel = storedReport?.provider === "openai" ? "OpenAIProvider" : "MockAIProvider";
+  const modeLabel = initialReport.isMock ? "Demo Mode · 使用範例資料展示流程" : "AI generated · OpenAIProvider";
 
   function handleSave(sectionId: string, newContent: string) {
     const target = sections.find((section) => section.id === sectionId);
@@ -565,13 +574,22 @@ export function ProductReport({ product, requestedProductId }: ProductReportProp
         </Link>
         <div className="mt-5 flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <Badge tone="teal">Demo Mode · 使用範例資料展示流程</Badge>
+            <div className="flex flex-wrap gap-2">
+              <Badge tone="teal">{modeLabel}</Badge>
+              <Badge tone="amber">{providerLabel}</Badge>
+              {storedReport?.isFallback ? <Badge tone="coral">Fallback 已啟用</Badge> : null}
+            </div>
             <h1 className="mt-4 text-3xl font-semibold text-ink sm:text-4xl">
               {activeProduct.name} 商品上市企劃報告
             </h1>
             <p className="mt-3 max-w-3xl text-sm leading-6 text-graphite/75">
-              這份報告使用範例資料展示完整流程，內容可複製、可匯出，也可在每個 section 進行人工編輯與審核。
+              這份報告透過 AI provider workflow 產生；內容可複製、可匯出，也可在每個 section 進行人工編輯與審核。
             </p>
+            {storedReport?.warning ? (
+              <p className="mt-3 rounded-md border border-amber-100 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-700">
+                {storedReport.warning}
+              </p>
+            ) : null}
           </div>
         </div>
         <div className="mt-5 flex flex-wrap gap-2">

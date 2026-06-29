@@ -18,6 +18,7 @@ PAQ Product Launch OS 是一個商品上市 AI Demo：
 - 匯出功能：Export Markdown、Export JSON、Copy Full Report、Shopify、蝦皮、Pinkoi 與社群貼文包模板。
 - Local persistence：demo 商品與使用者建立的商品會保存在 localStorage。
 - AI provider：可切換 MockAIProvider / OpenAIProvider，沒有 API key 或 OpenAI 回傳格式錯誤時自動 fallback。
+- API safety：商品報告 API 具備 IP-based rate limit，公開 production demo 預設強制使用 MockAIProvider。
 
 ## 技術棧
 
@@ -29,6 +30,31 @@ PAQ Product Launch OS 是一個商品上市 AI Demo：
 - Server-side AI API route
 - localStorage persistence
 - Frontend-only human-in-the-loop review state
+- 共用 frontend design system 與 responsive layout primitives
+- Playwright visual smoke test
+
+## Design System / Responsive Hardening
+
+v0.3.5 統一使用 `AppShell`、`ContentContainer`、`PageHeader`、`SectionHeader`、`ProductCard`、`ReportSectionCard`、`StatusBadge`、`EmptyState` 與 `CopyButton`。圖片使用固定比例容器，長文案與英文可換行，手機控制列不依賴固定高度。
+
+設計規則見 `docs/design-system.md`，人工 viewport 檢查見 `docs/responsive-qa-checklist.md`，發佈前檢查見 `docs/frontend-quality-checklist.md`。
+
+### Visual test
+
+第一次執行先安裝 Chromium：
+
+```bash
+npx playwright install chromium
+npm run test:visual
+```
+
+測試會在 390x844、768x1024、1440x900 開啟首頁與 Demo 報告，檢查主要內容、控制按鈕與水平 overflow，並把截圖保存至 `test-results/visual`。目前採 screenshot capture + layout assertions，不把 snapshot baseline 加入一般 build gate。
+
+```bash
+npm run test:visual:update
+```
+
+`test:visual:update` 預留給未來加入 snapshot comparison；目前與 capture 測試使用相同 routes。CI 暫不啟用，避免 visual environment 差異阻擋一般 build。
 
 ## 本地啟動
 
@@ -52,12 +78,12 @@ npm run build
 
 ## Demo Flow
 
-1. 打開首頁 `/`。
+1. 打開首頁 `/zh-TW`，或切換 `/en`、`/ja`、`/ko`、`/ar`。
 2. 點擊「開始建立商品企劃」建立自己的商品，或點擊「查看 Demo 商品」快速看成果。
 3. 直接查看三個 demo 商品：
-   - 文創小物：`/products/island-paper-bookmark/report`
-   - 3C 配件：`/products/arc-snap-power-bank/report`
-   - 生活香氛：`/products/after-rain-aroma-set/report`
+   - 文創小物：`/zh-TW/products/island-paper-bookmark/report`
+   - 3C 配件：`/zh-TW/products/arc-snap-power-bank/report`
+   - 生活香氛：`/zh-TW/products/after-rain-aroma-set/report`
 4. 在報告頁先看「上市企劃摘要」與商品生命週期進度。
 5. 往下展示商品定位、客群、競品、定價、包裝、商品頁、社群與首月行銷計畫。
 6. 示範 Copy section、Edit、Approve、Reject。
@@ -86,8 +112,17 @@ npm run build
 - 目前不保證 AI 圖片、包裝設計或文案可直接商用。
 - 食品、美妝、保健與醫療商品不得宣稱療效，正式使用前必須人工審核。
 - localStorage 只適合 demo；正式多人使用需改成 Supabase PostgreSQL 與 Storage。
+- Visual smoke test 目前只覆蓋三個代表 viewport，320、375、430、1024、1280 仍需人工 QA。
+- 尚未導入 Storybook 或 Chromatic；元件數量與團隊規模增加後再評估。
+- Phase one 完整啟用 `zh-TW`、`en`、`ja`、`ko`、`ar`；其餘七種 locale 已保留 catalog，尚未對外啟用。
 
-## Vercel 部署
+## Localization / AI Translation
+
+網站使用 `next-intl` App Router locale routes。Header 的語言選擇器會保留目前頁面，只切換介面語言；Arabic 會自動套用 RTL。報告頁可選擇目標語言、查看原文／翻譯／雙語對照，翻譯仍保留 Copy、人工編輯、審核與匯出流程。
+
+報告翻譯只透過 `POST /api/translate-report` 在 server side 呼叫 provider。`TRANSLATION_PROVIDER=mock|openai|nvidia`，缺少 key、格式驗證失敗、逾時或公開 production 禁用真 AI 時都會回到 MockTranslationProvider。localStorage cache 以報告、目標語言與來源 hash 分流，來源變更會自動失效。完整設計見 `docs/localization.md`。
+
+## Live Demo 部署
 
 1. 將專案推到 GitHub。
 2. 到 Vercel 建立 New Project。
@@ -95,8 +130,40 @@ npm run build
 4. Framework Preset 選 Next.js。
 5. Install Command 使用 `npm install`。
 6. Build Command 使用 `npm run build`。
-7. 目前 demo 不需要環境變數即可部署。
+7. 公開 demo 使用下方 Production safety 設定，不需要放 OpenAI 或 NVIDIA key。
 8. 部署後檢查 `/`、`/dashboard`、`/products/new` 與三個 demo report routes。
+
+完整步驟見 `docs/deployment.md`；部署完成後依 `docs/production-smoke-test.md` 驗證頁面、API、forced mock、rate limit、secret 與手機版。
+
+### Production safety 設定
+
+```env
+AI_PROVIDER=mock
+TRANSLATION_PROVIDER=mock
+ENABLE_PUBLIC_REAL_AI=false
+ENABLE_DEV_DIAGNOSTICS=false
+RATE_LIMIT_ENABLED=true
+RATE_LIMIT_WINDOW_SECONDS=3600
+RATE_LIMIT_MAX_REQUESTS=5
+```
+
+目前公開 demo 預設使用 MockAIProvider。真實 OpenAI / NVIDIA 測試只應在受 access control 保護的 Preview deployment 執行，且測試完成後立即關閉 `ENABLE_PUBLIC_REAL_AI`。
+
+## API Safety / Rate Limit / Quota
+
+`POST /api/generate-report` 只在 server-side 呼叫 AI provider，API key 不會送到瀏覽器。預設安全設定如下：
+
+```env
+ENABLE_PUBLIC_REAL_AI=false
+ENABLE_DEV_DIAGNOSTICS=false
+RATE_LIMIT_ENABLED=true
+RATE_LIMIT_WINDOW_SECONDS=3600
+RATE_LIMIT_MAX_REQUESTS=5
+```
+
+公開 production demo 在 `ENABLE_PUBLIC_REAL_AI` 不是 `true` 時，會忽略 OpenAI / NVIDIA provider 設定並強制 fallback 到 MockAIProvider。超過 rate limit 時 API 回傳 HTTP 429 與可重試時間，不會啟動任何 provider 呼叫。
+
+目前 rate limit 使用單一 server process 的記憶體，只適合本機與簡易 demo。正式上線應換成 Upstash Redis、Vercel Redis / KV 或 Supabase，並在登入後以 user / workspace 作為 quota key。完整設定與封閉測試流程見 `docs/api-safety.md`。
 
 ## 未來接 Supabase 的方式
 
@@ -125,3 +192,129 @@ npm run build
 - `docs/architecture.md`
 - `docs/database-schema.md`
 - `docs/demo-script.md`
+- `docs/api-safety.md`
+- `docs/deployment.md`
+- `docs/production-smoke-test.md`
+- `docs/design-system.md`
+- `docs/responsive-qa-checklist.md`
+- `docs/frontend-quality-checklist.md`
+- `docs/localization.md`
+
+## v0.4 Auth + Workspace + Autosave
+
+v0.4 adds Supabase Auth and cloud workspace persistence while keeping the public demo local-first. Anonymous users can still create products, generate mock/AI reports, copy/export, and use localStorage. Signed-in users can additionally sync products, drafts, and reports through server-side API routes.
+
+Key files:
+
+- `lib/supabase/client.ts`, `lib/supabase/server.ts`, `lib/supabase/middleware.ts`
+- `app/[locale]/login`, `app/[locale]/signup`, `app/[locale]/reset-password`
+- `app/api/products`, `app/api/drafts`, `app/api/reports`, `app/api/anonymous-draft/import`
+- `lib/autosave/local-draft.ts`, `lib/autosave/draft-sync.ts`, `hooks/useAutosaveProductDraft.ts`
+- `docs/auth-and-workspace.md`
+- `docs/persistence-and-autosave.md`
+- `docs/supabase-schema.sql`
+
+Supabase env:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+```
+
+The frontend only uses the publishable/anon key. Workspace API routes validate the Supabase session server-side and never trust a client-supplied `user_id`. If the user is anonymous or Supabase is not configured, the app falls back to local/demo persistence.
+
+## v0.4.5 Security / Compliance / Professional Reports
+
+v0.4.5 adds a security and professional-report foundation without changing the public demo contract.
+
+New security controls:
+
+- `lib/security/encryption.ts`: server-only AES-256-GCM helper for sensitive JSON/text payloads.
+- `lib/security/audit.ts`: export/security event helpers with hashed IP/user-agent utilities.
+- `lib/security/same-origin.ts`: same-origin guard for new cookie-authenticated state-changing routes.
+- `docs/security-and-compliance.md`: data categories, sensitivity levels, controls, and non-claims.
+- `docs/encryption-design.md`: payload shape, key handling, and rotation notes.
+
+New persistence/schema concepts:
+
+- `encrypted_confidential_data` on `products`
+- `encrypted_form_data` on `product_drafts`
+- `encrypted_report` on `launch_reports`
+- `encrypted_translation` on `report_translations`
+- `export_jobs`
+- `report_collections`
+- `user_security_events`
+- `data_requests`
+
+New professional report builder:
+
+- `lib/report-builder/normalize-report-to-template.ts`
+- `lib/report-builder/templates/product-analysis-template.ts`
+- Product analysis exports: Markdown, JSON, HTML, CSV summary, and ZIP-package manifest.
+- Collection exports: Markdown, JSON, HTML, CSV summary.
+
+New routes:
+
+- `/[locale]/reports/collections`
+- `/[locale]/reports/collections/new`
+- `/[locale]/reports/collections/[id]`
+- `/[locale]/settings/security`
+- `/[locale]/legal/privacy`
+- `/[locale]/legal/terms`
+
+New protected APIs:
+
+- `POST /api/exports/product-analysis`
+- `POST /api/exports/collection-report`
+- `GET /api/exports/jobs`
+- `GET /api/exports/jobs/[id]`
+- `GET/POST /api/report-collections`
+- `GET/DELETE /api/report-collections/[id]`
+- `POST /api/account/export-data`
+- `POST /api/account/delete-request`
+
+Additional env:
+
+```env
+ENCRYPTION_MASTER_KEY=
+ENCRYPTION_KEY_VERSION=v1
+REQUIRE_ENCRYPTION_IN_PRODUCTION=true
+EXPORT_RETENTION_HOURS=24
+ENABLE_EXPORT_AUDIT_LOG=true
+ENABLE_DATA_EXPORT=true
+ENABLE_ACCOUNT_DELETE_REQUEST=true
+```
+
+Production note: set `ENCRYPTION_MASTER_KEY` before enabling encrypted cloud persistence. Development can use a warning-based fallback key, but production fails closed when `REQUIRE_ENCRYPTION_IN_PRODUCTION=true`.
+
+## v0.4.6 AI Help Center
+
+v0.4.6 adds a site-scoped AI Help Center for product workflow, report generation, export formats, translation, auth, workspace persistence, security, privacy, and compliance questions. It is intentionally not a general chatbot.
+
+Key files:
+
+- `app/api/help-chat/route.ts`
+- `lib/help/help-knowledge-base.ts`
+- `lib/help/mock-help-provider.ts`
+- `lib/help/nvidia-help-provider.ts`
+- `lib/help/help-scope-guard.ts`
+- `components/help/HelpChatButton.tsx`
+- `docs/ai-help-center.md`
+- `docs/help-knowledge-base.md`
+
+Help env:
+
+```env
+HELP_AI_PROVIDER=mock
+ENABLE_PUBLIC_HELP_AI=false
+HELP_RATE_LIMIT_ENABLED=true
+HELP_RATE_LIMIT_WINDOW_SECONDS=3600
+HELP_RATE_LIMIT_MAX_REQUESTS=20
+HELP_MAX_MESSAGES_PER_THREAD=20
+NVIDIA_API_KEY=
+NVIDIA_MODEL=minimaxai/minimax-m2.7
+```
+
+Frontend components only call `POST /api/help-chat`; NVIDIA is server-side only. Without `NVIDIA_API_KEY`, or when `ENABLE_PUBLIC_HELP_AI=false`, the assistant uses `MockHelpProvider`. Help chat uses sessionStorage for short-term UI memory and audit logs only metadata, not full conversations.

@@ -11,6 +11,8 @@ export type StoredLaunchReport = {
   requestedProvider: AIProviderName;
   isFallback: boolean;
   isAiGenerated: true;
+  model?: string;
+  validationPassed?: boolean;
   warning?: string;
   generatedAt: string;
 };

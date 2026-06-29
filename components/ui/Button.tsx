@@ -14,9 +14,9 @@ const variants = {
 };
 
 const sizes = {
-  sm: "h-10 px-3 text-sm",
-  md: "h-11 px-4 text-sm",
-  lg: "h-12 px-5 text-base"
+  sm: "min-h-10 px-3 py-2 text-sm",
+  md: "min-h-11 px-4 py-2 text-sm",
+  lg: "min-h-12 px-5 py-2.5 text-base"
 };
 
 export function Button({
@@ -30,7 +30,7 @@ export function Button({
     <button
       type={type}
       className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-md font-medium transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-55",
+        "inline-flex max-w-full min-w-0 items-center justify-center gap-2 whitespace-normal rounded-md text-center font-medium transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 disabled:cursor-not-allowed disabled:opacity-55",
         variants[variant],
         sizes[size],
         className
@@ -39,4 +39,3 @@ export function Button({
     />
   );
 }
-

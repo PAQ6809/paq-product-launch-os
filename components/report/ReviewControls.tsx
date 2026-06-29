@@ -1,13 +1,15 @@
 "use client";
 
-import { CheckCircle2, Copy, Pencil, XCircle } from "lucide-react";
+import { CheckCircle2, Pencil, XCircle } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/Button";
+import { CopyButton } from "@/components/ui/CopyButton";
 import type { ReportReviewStatus } from "@/types";
 
 type ReviewControlsProps = {
   status: ReportReviewStatus;
   isEditing: boolean;
-  onCopy: () => void;
+  copyText: string;
   onEdit: () => void;
   onApprove: () => void;
   onReject: () => void;
@@ -16,28 +18,26 @@ type ReviewControlsProps = {
 export function ReviewControls({
   status,
   isEditing,
-  onCopy,
+  copyText,
   onEdit,
   onApprove,
   onReject
 }: ReviewControlsProps) {
+  const t = useTranslations("common");
   return (
-    <div className="flex flex-wrap gap-2">
-      <Button variant="secondary" size="sm" onClick={onCopy}>
-        <Copy size={16} aria-hidden="true" />
-        Copy
-      </Button>
-      <Button variant="secondary" size="sm" onClick={onEdit} disabled={isEditing}>
+    <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap">
+      <CopyButton text={copyText} className="w-full sm:w-auto" />
+      <Button className="w-full sm:w-auto" variant="secondary" size="sm" onClick={onEdit} disabled={isEditing}>
         <Pencil size={16} aria-hidden="true" />
-        Edit
+        {t("edit")}
       </Button>
-      <Button variant="secondary" size="sm" onClick={onApprove} disabled={status === "approved"}>
+      <Button className="w-full sm:w-auto" variant="secondary" size="sm" onClick={onApprove} disabled={status === "approved"}>
         <CheckCircle2 size={16} aria-hidden="true" />
-        Approve
+        {t("approve")}
       </Button>
-      <Button variant="danger" size="sm" onClick={onReject} disabled={status === "rejected"}>
+      <Button className="w-full sm:w-auto" variant="danger" size="sm" onClick={onReject} disabled={status === "rejected"}>
         <XCircle size={16} aria-hidden="true" />
-        Reject
+        {t("reject")}
       </Button>
     </div>
   );

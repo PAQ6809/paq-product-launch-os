@@ -2,14 +2,17 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import Link from "next/link";
-import { ArrowRight, FileText, Package, Users } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { ArrowRight, FileText, Package, PackageSearch, Users } from "lucide-react";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { LifecycleProgress } from "@/components/product/LifecycleProgress";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
-import { LifecycleProgress } from "@/components/product/LifecycleProgress";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { findDemoProduct } from "@/lib/storage/local-demo-store";
-import { formatCurrency, getMarginRate, lifecycleLabels } from "@/lib/utils";
+import { formatCurrency, getMarginRate } from "@/lib/utils";
 import type { Product } from "@/types";
+import { Link } from "@/i18n/navigation";
 
 type ProductDetailProps = {
   product: Product;
@@ -17,6 +20,8 @@ type ProductDetailProps = {
 };
 
 export function ProductDetail({ product, requestedProductId }: ProductDetailProps) {
+  const t = useTranslations("product");
+  const lifecycle = useTranslations("lifecycle");
   const [activeProduct, setActiveProduct] = useState(product);
   const expectsLocalProduct = Boolean(requestedProductId && requestedProductId !== product.id);
   const [lookupState, setLookupState] = useState<"pending" | "ready" | "missing">(
@@ -34,7 +39,15 @@ export function ProductDetail({ product, requestedProductId }: ProductDetailProp
     }
 
     if (targetId !== product.id) {
-      setLookupState("missing");
+      void fetchCloudProduct(targetId).then((cloudProduct) => {
+        if (!cloudProduct) {
+          setLookupState("missing");
+          return;
+        }
+
+        setActiveProduct(cloudProduct);
+        setLookupState("ready");
+      });
       return;
     }
 
@@ -44,114 +57,126 @@ export function ProductDetail({ product, requestedProductId }: ProductDetailProp
 
   if (lookupState === "pending") {
     return (
-      <section className="surface p-6">
-        <Badge tone="amber">Local demo data</Badge>
-        <h1 className="mt-4 text-2xl font-semibold text-ink">正在讀取本機商品資料...</h1>
-        <p className="mt-3 text-sm leading-6 text-graphite/75">
-          這個商品是從 localStorage 讀取，稍候會顯示完整詳情。
-        </p>
+      <section className="surface min-h-[26rem] overflow-hidden p-5 sm:p-6" aria-busy="true" aria-label="正在讀取本機商品資料">
+        <div className="motion-safe:animate-pulse">
+          <div className="h-7 w-28 rounded-md bg-teal-50" />
+          <div className="mt-5 h-9 w-3/4 max-w-xl rounded-md bg-line/70" />
+          <div className="mt-3 h-5 w-full max-w-2xl rounded-md bg-line/50" />
+          <div className="mt-8 grid gap-5 lg:grid-cols-[minmax(0,420px)_1fr]">
+            <div className="aspect-[4/3] rounded-md bg-mist" />
+            <div className="min-h-64 rounded-md bg-mist" />
+          </div>
+        </div>
       </section>
     );
   }
 
   if (lookupState === "missing") {
     return (
-      <section className="surface p-6">
-        <Badge tone="coral">找不到商品</Badge>
-        <h1 className="mt-4 text-2xl font-semibold text-ink">本機沒有這筆商品資料</h1>
-        <p className="mt-3 text-sm leading-6 text-graphite/75">
-          這可能是 localStorage 被清除，或你開啟了另一個瀏覽器環境。請回 Dashboard 查看目前可用商品。
-        </p>
-        <Link
-          href="/dashboard"
-          className="mt-5 inline-flex min-h-11 items-center rounded-md bg-ink px-4 text-sm font-semibold text-white transition hover:bg-graphite"
-        >
-          回 Dashboard
-        </Link>
-      </section>
+      <EmptyState
+        icon={PackageSearch}
+        title={t("missing")}
+        description={t("missingText")}
+        action={
+          <Link href="/dashboard" className="inline-flex min-h-11 items-center rounded-md bg-ink px-4 py-2 text-sm font-semibold text-white">
+            {t("backDashboard")}
+          </Link>
+        }
+      />
     );
   }
 
+  const reportLink = (
+    <Link
+      href={`/products/${activeProduct.id}/report`}
+      className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-md bg-ink px-4 py-2 text-sm font-semibold text-white transition hover:bg-graphite focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 sm:w-auto"
+    >
+      {t("viewReport")}
+      <ArrowRight size={16} aria-hidden="true" />
+    </Link>
+  );
+
   return (
-    <div className="grid gap-6">
-      <div className="grid gap-6 lg:grid-cols-[420px_1fr]">
-        <Card className="overflow-hidden">
-          <div className="relative aspect-[4/3]">
+    <div className="grid min-w-0 gap-8">
+      <PageHeader
+        eyebrow={<Badge tone="teal">{lifecycle(activeProduct.lifecycleStatus)}</Badge>}
+        title={activeProduct.name}
+        description={activeProduct.features}
+        actions={reportLink}
+      />
+
+      <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
+        <Card className="h-fit overflow-hidden">
+          <div className="relative aspect-[4/3] w-full bg-mist">
             <Image
               src={activeProduct.imageUrl}
               alt={`${activeProduct.name} 商品圖片`}
               fill
+              priority
               sizes="(max-width: 1024px) 100vw, 420px"
               className="object-cover"
             />
           </div>
         </Card>
 
-        <section className="surface p-5 sm:p-6">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <Badge tone="teal">{lifecycleLabels[activeProduct.lifecycleStatus]}</Badge>
-              <h1 className="mt-4 text-3xl font-semibold text-ink">{activeProduct.name}</h1>
-              <p className="mt-3 text-base leading-7 text-graphite/75">{activeProduct.features}</p>
-            </div>
-            <Link
-              href={`/products/${activeProduct.id}/report`}
-              className="inline-flex min-h-11 items-center gap-2 rounded-md bg-ink px-4 text-sm font-semibold text-white transition hover:bg-graphite"
-            >
-              查看報告
-              <ArrowRight size={16} aria-hidden="true" />
-            </Link>
-          </div>
+        <section className="surface min-w-0 p-5 sm:p-6" aria-labelledby="product-overview-heading">
+          <h2 id="product-overview-heading" className="text-lg font-semibold text-ink">{t("overview")}</h2>
 
-          <div className="mt-6 grid gap-3 sm:grid-cols-3">
-            <div className="rounded-md border border-line bg-mist p-4">
+          <div className="mt-5 grid items-stretch gap-3 md:grid-cols-3">
+            <div className="min-w-0 rounded-md border border-line bg-mist p-4">
               <Package className="mb-3 h-5 w-5 text-teal-600" aria-hidden="true" />
-              <p className="text-xs text-graphite/65">商品類別</p>
-              <p className="mt-1 font-semibold text-ink">{activeProduct.category}</p>
+              <p className="text-xs text-graphite/65">{t("category")}</p>
+              <p className="mt-1 break-words font-semibold text-ink">{activeProduct.category}</p>
             </div>
-            <div className="rounded-md border border-line bg-mist p-4">
+            <div className="min-w-0 rounded-md border border-line bg-mist p-4">
               <Users className="mb-3 h-5 w-5 text-teal-600" aria-hidden="true" />
-              <p className="text-xs text-graphite/65">目標客群</p>
-              <p className="mt-1 text-sm font-semibold leading-5 text-ink">
-                {activeProduct.targetAudience}
-              </p>
+              <p className="text-xs text-graphite/65">{t("audience")}</p>
+              <p className="mt-1 break-words text-sm font-semibold leading-5 text-ink">{activeProduct.targetAudience}</p>
             </div>
-            <div className="rounded-md border border-line bg-mist p-4">
+            <div className="min-w-0 rounded-md border border-line bg-mist p-4">
               <FileText className="mb-3 h-5 w-5 text-teal-600" aria-hidden="true" />
-              <p className="text-xs text-graphite/65">最近報告</p>
-              <p className="mt-1 text-sm font-semibold leading-5 text-ink">
-                {activeProduct.latestReportTitle}
-              </p>
+              <p className="text-xs text-graphite/65">{t("latestReport")}</p>
+              <p className="mt-1 break-words text-sm font-semibold leading-5 text-ink">{activeProduct.latestReportTitle}</p>
             </div>
           </div>
 
-          <dl className="mt-6 grid gap-4 border-t border-line pt-6 sm:grid-cols-2">
-            <div>
-              <dt className="text-sm text-graphite/65">商品成本</dt>
-              <dd className="mt-1 font-semibold text-ink">{formatCurrency(activeProduct.cost)}</dd>
+          <dl className="mt-6 grid min-w-0 gap-4 border-t border-line pt-6 sm:grid-cols-2">
+            <div className="min-w-0">
+              <dt className="text-sm text-graphite/65">{t("cost")}</dt>
+              <dd className="mt-1 break-words font-semibold text-ink">{formatCurrency(activeProduct.cost)}</dd>
             </div>
-            <div>
-              <dt className="text-sm text-graphite/65">預計售價</dt>
-              <dd className="mt-1 font-semibold text-ink">
-                {formatCurrency(activeProduct.expectedPrice)} / 毛利率{" "}
-                {getMarginRate(activeProduct.cost, activeProduct.expectedPrice)}%
+            <div className="min-w-0">
+              <dt className="text-sm text-graphite/65">{t("price")}</dt>
+              <dd className="mt-1 break-words font-semibold text-ink">
+                {formatCurrency(activeProduct.expectedPrice)} / {t("margin")} {getMarginRate(activeProduct.cost, activeProduct.expectedPrice)}%
               </dd>
             </div>
-            <div>
-              <dt className="text-sm text-graphite/65">品牌風格</dt>
-              <dd className="mt-1 font-semibold text-ink">{activeProduct.brandStyle}</dd>
+            <div className="min-w-0">
+              <dt className="text-sm text-graphite/65">{t("brandStyle")}</dt>
+              <dd className="mt-1 break-words font-semibold text-ink">{activeProduct.brandStyle}</dd>
             </div>
-            <div>
-              <dt className="text-sm text-graphite/65">銷售平台</dt>
-              <dd className="mt-1 font-semibold text-ink">{activeProduct.salesPlatforms.join("、")}</dd>
+            <div className="min-w-0">
+              <dt className="text-sm text-graphite/65">{t("channels")}</dt>
+              <dd className="mt-1 break-words font-semibold text-ink">{activeProduct.salesPlatforms.join(", ") || t("notSet")}</dd>
             </div>
           </dl>
         </section>
       </div>
 
-      <section className="surface p-5 sm:p-6">
+      <section className="surface min-w-0 p-5 sm:p-6">
         <LifecycleProgress status={activeProduct.lifecycleStatus} />
       </section>
     </div>
   );
+}
+
+async function fetchCloudProduct(productId: string) {
+  try {
+    const response = await fetch(`/api/products/${productId}`, { cache: "no-store" });
+    if (!response.ok) return null;
+    const data = (await response.json()) as { product?: Product };
+    return data.product ?? null;
+  } catch {
+    return null;
+  }
 }

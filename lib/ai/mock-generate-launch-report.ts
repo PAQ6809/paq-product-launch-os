@@ -350,7 +350,13 @@ export function generateMockLaunchReport(input: LaunchReportInput): LaunchReport
     customerServiceScripts: buildCustomerServiceScripts(input),
     launchChecklist: buildChecklist(input),
     firstMonthMarketingPlan: buildFirstMonthPlan(input, strategy),
-    optimizationSuggestions: buildOptimizationSuggestions()
+    optimizationSuggestions: buildOptimizationSuggestions(),
+    legalRiskNotes: [
+      "AI 產出內容需人工審核，不可直接作為正式法規、商標、版權或商品合規建議。",
+      "包裝設計、照片、插圖、字體、音樂與其他素材需確認商用授權。",
+      "食品、美妝、保健與醫療相關商品不得宣稱療效、治療、改善疾病或保證效果。",
+      "實際上架前需依銷售平台規則與當地法規再次檢查。"
+    ]
   };
 }
 
@@ -480,10 +486,7 @@ ${report.longDescription}`,
     section(
       "legal-risk-notes",
       "法規與風險提醒",
-      `1. AI 產出內容需人工審核，不可直接視為正式法規、商標、版權、醫療、美妝、食品或保健品合規建議。
-2. 包裝設計、照片、插圖、字體、音樂與素材需確認商用授權。
-3. 食品、美妝、保健與醫療相關商品不得宣稱療效、治療、改善疾病或保證效果。
-4. 實際上架前需依 Shopify、蝦皮、Pinkoi、TikTok Shop 等平台規則與當地法規再次檢查。`,
+      formatList(report.legalRiskNotes),
       "high"
     )
   ];

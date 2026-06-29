@@ -3,10 +3,12 @@
 import { useMemo, useState } from "react";
 import Image from "next/image";
 import { ImagePlus } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 export function MockImageUpload() {
+  const t = useTranslations("form");
   const [fileName, setFileName] = useState("");
-  const previewLabel = useMemo(() => fileName || "尚未選擇圖片", [fileName]);
+  const previewLabel = useMemo(() => fileName || t("noImage"), [fileName, t]);
 
   return (
     <div className="grid gap-3 rounded-md border border-dashed border-line bg-mist p-4">
@@ -22,18 +24,21 @@ export function MockImageUpload() {
           Mock preview
         </div>
       </div>
-      <label className="flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-md border border-line bg-white px-4 text-sm font-semibold text-ink transition hover:border-teal-500 hover:text-teal-600">
+      <label htmlFor="product-image" className="flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-md border border-line bg-white px-4 py-2 text-center text-sm font-semibold text-ink transition hover:border-teal-500 hover:text-teal-600 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-teal-600">
         <ImagePlus size={17} aria-hidden="true" />
-        上傳商品圖片
+        {t("upload")}
         <input
+          id="product-image"
+          name="productImage"
           type="file"
           accept="image/*"
           className="sr-only"
+          aria-describedby="product-image-hint"
           onChange={(event) => setFileName(event.target.files?.[0]?.name ?? "")}
         />
       </label>
-      <p className="text-xs leading-5 text-graphite/70">
-        {previewLabel}。v0.2 先保留前端預覽與 mock image URL，尚未接 Supabase Storage 或 R2。
+      <p id="product-image-hint" className="break-all text-xs leading-5 text-graphite/70">
+        {previewLabel}. Demo preview uses a local image URL.
       </p>
     </div>
   );

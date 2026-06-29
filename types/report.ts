@@ -103,4 +103,43 @@ export type LaunchReport = {
   launchChecklist: LaunchChecklistItem[];
   firstMonthMarketingPlan: FirstMonthMarketingPlanItem[];
   optimizationSuggestions: OptimizationSuggestion[];
+  legalRiskNotes: string[];
+};
+
+export type TranslationProviderName = "mock" | "openai" | "nvidia";
+export type TranslationLocale = "zh-TW" | "en" | "ja" | "ko" | "ar";
+
+export type TranslationSectionKey =
+  | "positioning"
+  | "targetAudienceAnalysis"
+  | "keySellingPoints"
+  | "competitorAnalysis"
+  | "pricingStrategy"
+  | "packagingBrief"
+  | "frontPackagingCopy"
+  | "backPackagingCopy"
+  | "productTitle"
+  | "shortDescription"
+  | "longDescription"
+  | "seoKeywords"
+  | "socialPosts"
+  | "videoScripts"
+  | "faqs"
+  | "customerServiceScripts"
+  | "launchChecklist"
+  | "firstMonthMarketingPlan"
+  | "optimizationSuggestions"
+  | "legalRiskNotes";
+
+export type TranslationSections = Record<TranslationSectionKey, string>;
+
+export type TranslationResult = {
+  sourceLocale: TranslationLocale;
+  targetLocale: TranslationLocale;
+  translatedAt: string;
+  provider: TranslationProviderName;
+  model: string;
+  isFallback: boolean;
+  warning?: string;
+  sections: TranslationSections;
 };

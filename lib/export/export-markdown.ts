@@ -117,6 +117,9 @@ export function exportLaunchReportMarkdown(report: LaunchReport) {
       `  - 原因：${item.why}`
     ]),
     "",
+    "## 法規與風險提醒",
+    list(report.legalRiskNotes),
+    "",
     "---",
     legalReminder
   ];

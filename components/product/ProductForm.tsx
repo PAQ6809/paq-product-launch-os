@@ -1,18 +1,25 @@
 "use client";
 
 import { FormEvent, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { FileText, WandSparkles } from "lucide-react";
+import { AutosaveIndicator } from "@/components/autosave/AutosaveIndicator";
+import { ResumeDraftBanner } from "@/components/autosave/ResumeDraftBanner";
+import { SyncAnonymousDraftDialog } from "@/components/autosave/SyncAnonymousDraftDialog";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Field, inputClassName } from "@/components/ui/Field";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import { MockImageUpload } from "@/components/product/MockImageUpload";
+import { useAutosaveProductDraft } from "@/hooks/useAutosaveProductDraft";
 import { generateMockLaunchReport, launchReportToSections } from "@/lib/ai/mock-generate-launch-report";
 import type { GenerateReportApiResponse } from "@/lib/ai/provider";
 import { createProductFromDraft, upsertDemoProduct } from "@/lib/storage/local-demo-store";
 import { upsertStoredLaunchReport } from "@/lib/storage/local-report-store";
 import { formatCurrency } from "@/lib/utils";
-import type { LaunchReport, NewProductDraft } from "@/types";
+import type { LaunchReport, NewProductDraft, Product } from "@/types";
+import { useRouter } from "@/i18n/navigation";
 
 const initialDraft: NewProductDraft = {
   name: "",
@@ -26,11 +33,14 @@ const initialDraft: NewProductDraft = {
 };
 
 export function ProductForm() {
+  const t = useTranslations("form");
   const router = useRouter();
   const [draft, setDraft] = useState(initialDraft);
   const [generatedReport, setGeneratedReport] = useState<LaunchReport | null>(null);
   const [generationMessage, setGenerationMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [resumeDismissed, setResumeDismissed] = useState(false);
+  const autosave = useAutosaveProductDraft(draft);
 
   const generatedSections = useMemo(
     () => (generatedReport ? launchReportToSections(generatedReport) : []),
@@ -41,12 +51,22 @@ export function ProductForm() {
     setDraft((current) => ({ ...current, [field]: value }));
   }
 
+  function handleResumeDraft() {
+    const stored = autosave.resumeDraft();
+    if (stored) {
+      setDraft(stored.formData);
+      setResumeDismissed(true);
+    }
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsSubmitting(true);
     setGenerationMessage("");
 
-    const product = createProductFromDraft(draft);
+    const localProduct = createProductFromDraft(draft);
+    const cloudProduct = await createCloudProduct(draft);
+    const product = cloudProduct ?? localProduct;
     upsertDemoProduct(product);
 
     const input = {
@@ -82,11 +102,15 @@ export function ProductForm() {
         requestedProvider: result.requestedProvider,
         isFallback: result.isFallback,
         isAiGenerated: result.isAiGenerated,
+        model: result.model,
+        validationPassed: result.validationPassed,
         warning: result.warning,
-        generatedAt: new Date().toISOString()
+        generatedAt: result.generatedAt
       });
       setGeneratedReport(result.report);
       setGenerationMessage(result.warning ?? `已使用 ${result.provider} provider 產生報告。`);
+      await saveCloudReport(product.id, result);
+      autosave.discardDraft();
       router.push(`/products/${product.id}/report`);
     } catch (error) {
       const fallbackReport = generateMockLaunchReport(input);
@@ -102,11 +126,22 @@ export function ProductForm() {
         requestedProvider: "mock",
         isFallback: true,
         isAiGenerated: true,
+        model: "paq-mock-v1",
+        validationPassed: true,
         warning,
         generatedAt: new Date().toISOString()
       });
       setGeneratedReport(fallbackReport);
       setGenerationMessage(warning);
+      await saveCloudReport(product.id, {
+        report: fallbackReport,
+        provider: "mock",
+        isFallback: true,
+        model: "paq-mock-v1",
+        validationPassed: true,
+        generatedAt: new Date().toISOString()
+      });
+      autosave.discardDraft();
       router.push(`/products/${product.id}/report`);
     } finally {
       setIsSubmitting(false);
@@ -114,33 +149,50 @@ export function ProductForm() {
   }
 
   return (
-    <div className="grid gap-6">
-      <form onSubmit={handleSubmit} className="grid gap-6 lg:grid-cols-[1fr_360px]">
-        <div className="surface grid gap-5 p-5 sm:p-6">
+    <div className="grid min-w-0 gap-8">
+      <PageHeader
+        eyebrow={<StatusBadge status="demo" label={t("eyebrow")} />}
+        title={t("title")}
+        description={t("description")}
+      />
+
+      <ResumeDraftBanner
+        draft={!resumeDismissed && autosave.status === "idle" ? autosave.localDraft : null}
+        onResume={handleResumeDraft}
+        onDiscard={() => {
+          setResumeDismissed(true);
+          autosave.discardDraft();
+        }}
+      />
+
+      <SyncAnonymousDraftDialog draft={autosave.localDraft} />
+
+      <form onSubmit={handleSubmit} className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_360px]" aria-busy={isSubmitting}>
+        <section className="surface grid min-w-0 gap-5 p-5 sm:p-6" aria-labelledby="product-data-heading">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-teal-600">
-              Product Input
-            </p>
-            <h1 className="mt-2 text-2xl font-semibold text-ink sm:text-3xl">
-              建立商品上市企劃
-            </h1>
-            <p className="mt-3 text-sm leading-6 text-graphite/72">
-              填入商品資料後，系統會透過 server-side API route 產生上市企劃書；沒有 API key 時會自動使用 Mock Demo fallback，並將商品與報告保存在 localStorage。
-            </p>
+            <h2 id="product-data-heading" className="text-lg font-semibold text-ink">{t("data")}</h2>
+            <p className="mt-2 text-sm leading-6 text-graphite/72">{t("dataText")}</p>
+            <div className="mt-3">
+              <AutosaveIndicator status={autosave.status} autosavedAt={autosave.autosavedAt} message={autosave.message} />
+            </div>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="商品名稱">
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field label={t("name")} htmlFor="product-name">
               <input
+                id="product-name"
+                name="productName"
                 className={inputClassName}
-                placeholder="例如：島嶼紙感書籤組"
+                placeholder={t("namePlaceholder")}
                 value={draft.name}
                 onChange={(event) => updateField("name", event.target.value)}
                 required
               />
             </Field>
-            <Field label="商品類別">
+            <Field label={t("category")} htmlFor="product-category">
               <select
+                id="product-category"
+                name="category"
                 className={inputClassName}
                 value={draft.category}
                 onChange={(event) => updateField("category", event.target.value)}
@@ -155,19 +207,23 @@ export function ProductForm() {
             </Field>
           </div>
 
-          <Field label="商品功能與特色">
+          <Field label={t("features")} htmlFor="product-features">
             <textarea
+              id="product-features"
+              name="features"
               className={`${inputClassName} min-h-28 py-3`}
-              placeholder="例如：厚磅紙材、局部燙金、適合送禮與日常閱讀收藏"
+              placeholder={t("featuresPlaceholder")}
               value={draft.features}
               onChange={(event) => updateField("features", event.target.value)}
               required
             />
           </Field>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="商品成本">
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field label={t("cost")} htmlFor="product-cost">
               <input
+                id="product-cost"
+                name="cost"
                 className={inputClassName}
                 inputMode="decimal"
                 placeholder="72"
@@ -176,8 +232,10 @@ export function ProductForm() {
                 required
               />
             </Field>
-            <Field label="預計售價">
+            <Field label={t("price")} htmlFor="product-price">
               <input
+                id="product-price"
+                name="expectedPrice"
                 className={inputClassName}
                 inputMode="decimal"
                 placeholder="320"
@@ -188,20 +246,24 @@ export function ProductForm() {
             </Field>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="目標客群">
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field label={t("audience")} htmlFor="target-audience">
               <textarea
+                id="target-audience"
+                name="targetAudience"
                 className={`${inputClassName} min-h-24 py-3`}
-                placeholder="例如：喜歡閱讀、手帳、台灣設計與小型禮物的 20-35 歲族群"
+                placeholder={t("audiencePlaceholder")}
                 value={draft.targetAudience}
                 onChange={(event) => updateField("targetAudience", event.target.value)}
                 required
               />
             </Field>
-            <Field label="品牌風格">
+            <Field label={t("style")} htmlFor="brand-style">
               <textarea
+                id="brand-style"
+                name="brandStyle"
                 className={`${inputClassName} min-h-24 py-3`}
-                placeholder="例如：溫暖、細膩、有台灣文化感"
+                placeholder={t("stylePlaceholder")}
                 value={draft.brandStyle}
                 onChange={(event) => updateField("brandStyle", event.target.value)}
                 required
@@ -209,46 +271,52 @@ export function ProductForm() {
             </Field>
           </div>
 
-          <Field label="銷售平台" hint="可用逗號、頓號或換行分隔，例如 Pinkoi, IG, 蝦皮">
+          <Field label={t("channels")} htmlFor="sales-channels" hint={t("channelsHint")}>
             <input
+              id="sales-channels"
+              name="salesChannels"
               className={inputClassName}
-              placeholder="Pinkoi, IG"
+              placeholder={t("channelsPlaceholder")}
               value={draft.salesChannels}
               onChange={(event) => updateField("salesChannels", event.target.value)}
             />
           </Field>
 
-          <Button type="submit" size="lg" className="w-full sm:w-auto" disabled={isSubmitting}>
-            <WandSparkles size={18} aria-hidden="true" />
-            {isSubmitting ? "正在產生報告..." : "儲存並產生 AI 報告"}
-          </Button>
-          {generationMessage ? (
-            <p className="rounded-md border border-amber-100 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-700">
-              {generationMessage}
-            </p>
-          ) : null}
-        </div>
+          <div className="grid min-h-[5.5rem] gap-3 border-t border-line pt-5 sm:flex sm:items-start sm:justify-between">
+            <div className="min-h-6 min-w-0" aria-live="polite">
+              {generationMessage ? (
+                <p className="break-words rounded-md border border-amber-100 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-700">
+                  {generationMessage}
+                </p>
+              ) : null}
+            </div>
+            <Button type="submit" size="lg" className="w-full shrink-0 sm:w-auto" disabled={isSubmitting}>
+              <WandSparkles size={18} className="shrink-0" aria-hidden="true" />
+              {isSubmitting ? t("loading") : t("submit")}
+            </Button>
+          </div>
+        </section>
 
-        <aside className="grid gap-4 self-start">
+        <aside className="grid min-w-0 gap-4 self-start xl:sticky xl:top-24">
           <MockImageUpload />
           <div className="surface p-5">
-            <h2 className="text-base font-semibold text-ink">Demo 提醒</h2>
-            <ul className="mt-3 grid gap-2 text-sm leading-6 text-graphite/75">
-              <li>OpenAI 呼叫只會發生在 server-side API route。</li>
-              <li>沒有 OPENAI_API_KEY 時會自動回到 Mock Demo。</li>
-              <li>食品、美妝、保健、醫療類內容仍需人工與法規審核。</li>
+            <h2 className="text-base font-semibold text-ink">{t("demoTitle")}</h2>
+            <ul className="mt-3 grid gap-2 break-words text-sm leading-6 text-graphite/75">
+              <li>{t("reminder1")}</li>
+              <li>{t("reminder2")}</li>
+              <li>{t("reminder3")}</li>
             </ul>
           </div>
         </aside>
       </form>
 
       {generatedReport ? (
-        <section className="surface grid gap-5 p-5 sm:p-6">
+        <section className="surface grid min-w-0 gap-5 p-5 sm:p-6" aria-live="polite">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
               <Badge tone="teal">AI report 已產生</Badge>
-              <h2 className="mt-3 text-2xl font-semibold text-ink">{generatedReport.productTitle}</h2>
-              <p className="mt-3 max-w-4xl text-sm leading-6 text-graphite/75">
+              <h2 className="mt-3 break-words text-2xl font-semibold text-ink">{generatedReport.productTitle}</h2>
+              <p className="mt-3 max-w-4xl break-words text-sm leading-6 text-graphite/75">
                 {generatedReport.shortDescription}
               </p>
             </div>
@@ -266,4 +334,47 @@ export function ProductForm() {
       ) : null}
     </div>
   );
+}
+
+async function createCloudProduct(draft: NewProductDraft): Promise<Product | null> {
+  try {
+    const response = await fetch("/api/products", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ draft })
+    });
+
+    if (!response.ok) return null;
+    const data = (await response.json()) as { product?: Product };
+    return data.product ?? null;
+  } catch {
+    return null;
+  }
+}
+
+type CloudReportSaveInput = Pick<
+  GenerateReportApiResponse,
+  "report" | "provider" | "model" | "isFallback" | "validationPassed" | "generatedAt"
+>;
+
+async function saveCloudReport(productId: string, result: CloudReportSaveInput) {
+  try {
+    await fetch("/api/reports", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        productId,
+        report: result.report,
+        metadata: {
+          provider: result.provider,
+          model: result.model,
+          isFallback: result.isFallback,
+          validationPassed: result.validationPassed,
+          generatedAt: result.generatedAt
+        }
+      })
+    });
+  } catch {
+    // Cloud report persistence is best-effort in the demo; local report persistence remains the source of truth.
+  }
 }

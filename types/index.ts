@@ -65,6 +65,11 @@ export type {
   PackagingBrief,
   PricingStrategy,
   SocialPost,
+  TranslationProviderName,
+  TranslationLocale,
+  TranslationResult,
+  TranslationSectionKey,
+  TranslationSections,
   VideoScript
 } from "@/types/report";
 

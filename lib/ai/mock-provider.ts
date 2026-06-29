@@ -4,6 +4,7 @@ import type { AIProvider, GenerateLaunchReportInput } from "@/lib/ai/provider";
 
 export class MockAIProvider implements AIProvider {
   readonly name = "mock" as const;
+  readonly model = "paq-mock-v1";
 
   async generateLaunchReport(input: GenerateLaunchReportInput) {
     return assertValidLaunchReport(generateMockLaunchReport(input));

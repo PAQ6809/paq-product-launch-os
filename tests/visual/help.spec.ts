@@ -1,0 +1,97 @@
+import { expect, test } from "@playwright/test";
+
+test("AI Help button appears on homepage", async ({ page }) => {
+  await page.goto("/zh-TW");
+  await expect(page.getByRole("button", { name: /AI Help/ })).toBeVisible();
+});
+
+test("AI Help drawer opens, closes, and handles Escape", async ({ page }) => {
+  await page.goto("/zh-TW");
+  await page.getByRole("button", { name: /AI Help/ }).click();
+  await expect(page.getByRole("dialog", { name: "PAQ AI Help" })).toBeVisible();
+
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog", { name: "PAQ AI Help" })).toHaveCount(0);
+
+  await page.getByRole("button", { name: /AI Help/ }).click();
+  await page.getByRole("dialog", { name: "PAQ AI Help" }).getByRole("button", { name: "Close AI Help" }).click();
+  await expect(page.getByRole("dialog", { name: "PAQ AI Help" })).toHaveCount(0);
+});
+
+test("quick prompt sends and related links display", async ({ page }) => {
+  await page.goto("/zh-TW");
+  await page.getByRole("button", { name: /AI Help/ }).click();
+  await page.getByRole("button", { name: "如何建立產品？" }).click();
+
+  await expect(page.getByText("相關頁面").first()).toBeVisible();
+  await expect(page.getByText(/建立商品企劃|產品列表/).first()).toBeVisible();
+});
+
+test("out-of-scope help question refuses without provider data", async ({ request }, testInfo) => {
+  const response = await request.post("/api/help-chat", {
+    headers: { "x-forwarded-for": `198.51.100.${testInfo.workerIndex + 10}` },
+    data: {
+      message: "幫我推薦股票",
+      history: [],
+      locale: "zh-TW",
+      currentPath: "/zh-TW"
+    }
+  });
+
+  expect(response.ok()).toBeTruthy();
+  const body = await response.json();
+  expect(body.scope).toBe("out_of_scope");
+  expect(body.provider).toBe("mock");
+  expect(JSON.stringify(body)).not.toContain("nvapi-");
+});
+
+test("default Help provider uses mock and does not return API keys", async ({ request }, testInfo) => {
+  const response = await request.post("/api/help-chat", {
+    headers: { "x-forwarded-for": `198.51.100.${testInfo.workerIndex + 40}` },
+    data: {
+      message: "報告可以匯出哪些格式？",
+      history: [],
+      locale: "zh-TW",
+      currentPath: "/zh-TW/products/arc-snap-power-bank/report"
+    }
+  });
+
+  expect(response.ok()).toBeTruthy();
+  const body = await response.json();
+  expect(body.provider).toBe("mock");
+  expect(body.relatedLinks.length).toBeGreaterThan(0);
+  expect(JSON.stringify(body)).not.toMatch(/nvapi-|NVIDIA_API_KEY|OPENAI_API_KEY/);
+});
+
+test("Help rate limit returns 429", async ({ request }, testInfo) => {
+  const ip = `203.0.113.${testInfo.workerIndex + 80}`;
+  let lastStatus = 0;
+
+  for (let index = 0; index < 21; index += 1) {
+    const response = await request.post("/api/help-chat", {
+      headers: { "x-forwarded-for": ip },
+      data: {
+        message: "如何建立產品？",
+        history: [],
+        locale: "zh-TW",
+        currentPath: "/zh-TW/products/new"
+      }
+    });
+    lastStatus = response.status();
+  }
+
+  expect(lastStatus).toBe(429);
+});
+
+test("mobile drawer has no horizontal overflow", async ({ page }) => {
+  await page.goto("/zh-TW");
+  await page.getByRole("button", { name: /AI Help/ }).click();
+  await expect(page.getByRole("dialog", { name: "PAQ AI Help" })).toBeVisible();
+
+  const layout = await page.evaluate(() => ({
+    clientWidth: document.documentElement.clientWidth,
+    scrollWidth: document.documentElement.scrollWidth
+  }));
+
+  expect(layout.scrollWidth).toBeLessThanOrEqual(layout.clientWidth + 1);
+});

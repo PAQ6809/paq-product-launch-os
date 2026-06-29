@@ -1,13 +1,16 @@
 import type { LaunchReport } from "@/types/report";
 
-const forbiddenMarketingClaimTerms = [
-  "保證有效",
-  "治療",
-  "改善疾病",
-  "醫療功效",
-  "保證銷售",
-  "月收保證"
-];
+const forbiddenMarketingClaimPatterns = [
+  { label: "保證療效", pattern: /保證療效/u },
+  { label: "治療", pattern: /治療/u },
+  { label: "改善疾病", pattern: /改善疾病/u },
+  { label: "保證銷售", pattern: /保證銷售/u },
+  { label: "月收保證", pattern: /月收保證/u },
+  { label: "guaranteed sales", pattern: /\bguaranteed sales\b/iu },
+  { label: "cure", pattern: /\bcure\b/iu },
+  { label: "treat disease", pattern: /\btreat disease\b/iu },
+  { label: "clinically proven", pattern: /\bclinically proven\b/iu }
+] as const;
 
 type ValidationResult =
   | {
@@ -44,7 +47,8 @@ const requiredArrayFields = [
   "customerServiceScripts",
   "launchChecklist",
   "firstMonthMarketingPlan",
-  "optimizationSuggestions"
+  "optimizationSuggestions",
+  "legalRiskNotes"
 ] as const;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -131,6 +135,7 @@ function validateVideoScripts(record: Record<string, unknown>, errors: string[])
 
 function validateSocialPosts(record: Record<string, unknown>, errors: string[]) {
   const value = record.socialPosts;
+  const allowedPlatforms = new Set(["IG", "Threads", "TikTok"]);
 
   if (!Array.isArray(value) || value.length === 0) {
     errors.push("socialPosts must be a non-empty array.");
@@ -148,6 +153,10 @@ function validateSocialPosts(record: Record<string, unknown>, errors: string[]) 
         errors.push(`socialPosts[${index}].${field} must be a non-empty string.`);
       }
     });
+
+    if (typeof item.platform === "string" && !allowedPlatforms.has(item.platform)) {
+      errors.push(`socialPosts[${index}].platform must be IG, Threads, or TikTok.`);
+    }
 
     validateStringArray(item, "hashtags", errors);
   });
@@ -245,6 +254,7 @@ export function validateLaunchReportPayload(payload: unknown): ValidationResult 
 
   validateStringArray(payload, "keySellingPoints", errors);
   validateStringArray(payload, "seoKeywords", errors);
+  validateStringArray(payload, "legalRiskNotes", errors);
   validateObjectArray(payload, "competitorAnalysis", ["name", "positioning", "priceRange", "strength", "gap"], errors);
   validateObjectArray(payload, "faqs", ["question", "answer"], errors);
   validateObjectArray(payload, "customerServiceScripts", ["scenario", "response"], errors);
@@ -256,11 +266,16 @@ export function validateLaunchReportPayload(payload: unknown): ValidationResult 
   validatePricingStrategy(payload, errors);
   validatePackagingBrief(payload, errors);
 
+  if (errors.length === 0) {
+    const matchedTerms = findForbiddenMarketingClaims(payload as LaunchReport);
+    matchedTerms.forEach((term) => errors.push(`Forbidden marketing claim found: ${term}.`));
+  }
+
   if (errors.length > 0) {
     return {
       ok: false,
       report: null,
-      errors
+      errors: Array.from(new Set(errors))
     };
   }
 
@@ -294,6 +309,14 @@ export function assertValidLaunchReport(payload: unknown): LaunchReport {
 }
 
 export function assertNoForbiddenMarketingClaims(report: LaunchReport) {
+  const matchedTerms = findForbiddenMarketingClaims(report);
+
+  if (matchedTerms.length > 0) {
+    throw new Error(`Forbidden marketing claim terms found: ${matchedTerms.join(", ")}`);
+  }
+}
+
+function findForbiddenMarketingClaims(report: LaunchReport) {
   const claimSensitiveText = [
     report.positioning,
     report.targetAudienceAnalysis,
@@ -309,9 +332,7 @@ export function assertNoForbiddenMarketingClaims(report: LaunchReport) {
     ...report.customerServiceScripts.flatMap((script) => [script.scenario, script.response])
   ].join("\n");
 
-  const matchedTerms = forbiddenMarketingClaimTerms.filter((term) => claimSensitiveText.includes(term));
-
-  if (matchedTerms.length > 0) {
-    throw new Error(`Forbidden marketing claim terms found: ${matchedTerms.join(", ")}`);
-  }
+  return forbiddenMarketingClaimPatterns
+    .filter(({ pattern }) => pattern.test(claimSensitiveText))
+    .map(({ label }) => label);
 }

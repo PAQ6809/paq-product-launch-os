@@ -19,10 +19,13 @@ html {
 body {
   min-height: 100vh;
   margin: 0;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(247, 248, 248, 0.96)),
-    var(--background);
+  background: var(--background);
   color: var(--foreground);
+}
+
+img,
+svg {
+  max-width: 100%;
 }
 
 button,
@@ -43,8 +46,16 @@ textarea {
     @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
   }
 
+  .content-container {
+    @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+
+  .section-spacing {
+    @apply py-12 sm:py-16 lg:py-20;
+  }
+
   .surface {
-    @apply border border-line bg-white shadow-panel;
+    @apply min-w-0 border border-line bg-white shadow-panel;
     border-radius: 8px;
   }
 
@@ -56,3 +67,16 @@ textarea {
   }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

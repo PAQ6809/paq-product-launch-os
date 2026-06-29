@@ -1,10 +1,9 @@
 import "server-only";
 
+import { normalizeGeneratedLaunchReport } from "@/lib/ai/normalize-launch-report";
 import { PRODUCT_LAUNCH_SYSTEM_PROMPT } from "@/lib/ai/prompts/product-launch-system-prompt";
-import {
-  buildProductLaunchUserPrompt,
-  LAUNCH_REPORT_JSON_SCHEMA
-} from "@/lib/ai/prompts/product-launch-user-prompt";
+import { buildProductLaunchUserPrompt } from "@/lib/ai/prompts/product-launch-user-prompt";
+import { LAUNCH_REPORT_JSON_SCHEMA } from "@/lib/ai/schemas/launch-report-json-schema";
 import {
   assertNoForbiddenMarketingClaims,
   parseLaunchReportJson
@@ -18,7 +17,6 @@ import type { LaunchReport } from "@/types/report";
 
 const OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses";
 const DEFAULT_MODEL = "gpt-4.1-mini";
-const REGULATED_CATEGORY_PATTERN = /食品|食物|飲品|保健|營養|醫療|藥|美妝|保養|香氛|精油|身體|肌膚/i;
 
 type OpenAIProviderConfig = {
   apiKey: string;
@@ -34,15 +32,15 @@ type OpenAIResponsePayload = {
 
 export class OpenAIProvider implements AIProvider {
   readonly name = "openai" as const;
+  readonly model: string;
   private readonly apiKey: string;
-  private readonly model: string;
   private readonly temperature: number;
   private readonly requestTimeoutMs: number;
 
   constructor(config: OpenAIProviderConfig) {
     this.apiKey = config.apiKey;
     this.model = config.model ?? DEFAULT_MODEL;
-    this.temperature = config.temperature ?? 0.2;
+    this.temperature = config.temperature ?? 0.1;
     this.requestTimeoutMs = config.requestTimeoutMs ?? 45_000;
   }
 
@@ -98,9 +96,9 @@ export class OpenAIProvider implements AIProvider {
         throw new Error(`OpenAI JSON validation failed: ${validation.errors.join("; ")}`);
       }
 
-      const report = normalizeOpenAIReport(validation.report, input);
+      const report = normalizeGeneratedLaunchReport(validation.report, input, { isMock: false });
       assertNoForbiddenMarketingClaims(report);
-      return withRegulatoryReminder(report, input);
+      return report;
     } finally {
       clearTimeout(timeout);
     }
@@ -127,47 +125,6 @@ function extractOutputText(payload: OpenAIResponsePayload) {
   }
 
   throw new Error("OpenAI response did not include output_text.");
-}
-
-function normalizeOpenAIReport(report: LaunchReport, input: GenerateLaunchReportInput): LaunchReport {
-  return {
-    ...report,
-    productName: input.productName,
-    category: input.category,
-    generatedAt: new Date().toISOString(),
-    isMock: false,
-    pricingStrategy: {
-      ...report.pricingStrategy,
-      suggestedPrice: Number(report.pricingStrategy.suggestedPrice) || input.targetPrice
-    }
-  };
-}
-
-function withRegulatoryReminder(report: LaunchReport, input: GenerateLaunchReportInput): LaunchReport {
-  const regulatedSource = `${input.category} ${input.features} ${input.productName}`;
-
-  if (!REGULATED_CATEGORY_PATTERN.test(regulatedSource)) {
-    return report;
-  }
-
-  const reminder =
-    "此商品類別可能涉及食品、美妝、保健、醫療、香氛或身體接觸相關風險，正式對外使用前需由真人依平台規則與當地法規審核，且不得做出療效、疾病改善或效果保證類宣稱。";
-
-  return {
-    ...report,
-    packagingBrief: {
-      ...report.packagingBrief,
-      complianceNotes: Array.from(new Set([...report.packagingBrief.complianceNotes, reminder]))
-    },
-    optimizationSuggestions: [
-      ...report.optimizationSuggestions,
-      {
-        signal: "商品類別涉及法規或宣稱風險",
-        action: "上架前安排人工審核所有包裝文案、商品頁、社群素材與客服話術。",
-        why: "降低療效宣稱、商標授權、平台禁用語與消費者誤解風險。"
-      }
-    ]
-  };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

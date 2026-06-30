@@ -76,7 +76,9 @@ export function LoginForm() {
           {t("sendMagicLink")}
         </Button>
       </form>
-      {message ? <p className="rounded-md border border-line bg-mist px-3 py-2 text-sm font-semibold text-graphite/80" aria-live="polite">{message}</p> : null}
+      <div className="min-h-10" aria-live="polite">
+        {message ? <p className="rounded-md border border-line bg-mist px-3 py-2 text-sm font-semibold text-graphite/80">{message}</p> : null}
+      </div>
       <div className="flex flex-wrap gap-3 text-sm">
         <Link className="font-semibold text-teal-600" href={`/signup?redirectTo=${encodeURIComponent(redirectTo)}`}>{t("needAccount")}</Link>
         <Link className="font-semibold text-graphite hover:text-ink" href="/reset-password">{t("forgotPassword")}</Link>

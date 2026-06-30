@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "i18n:check": "node scripts/check-i18n-messages.mjs",
     "start": "next start",
     "lint": "eslint . --max-warnings=0",
     "test:visual": "playwright test tests/visual",

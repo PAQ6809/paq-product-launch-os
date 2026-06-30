@@ -42,7 +42,9 @@ export function ResetPasswordForm() {
           {loading ? t("loading") : t("sendReset")}
         </Button>
       </form>
-      {message ? <p className="rounded-md border border-line bg-mist px-3 py-2 text-sm font-semibold text-graphite/80" aria-live="polite">{message}</p> : null}
+      <div className="min-h-10" aria-live="polite">
+        {message ? <p className="rounded-md border border-line bg-mist px-3 py-2 text-sm font-semibold text-graphite/80">{message}</p> : null}
+      </div>
       <Link className="text-sm font-semibold text-teal-600" href="/login">{t("backLogin")}</Link>
     </AuthCard>
   );

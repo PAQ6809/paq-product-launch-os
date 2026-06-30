@@ -9,7 +9,7 @@ export default async function SignupPage({ params }: { params: Promise<{ locale:
   setRequestLocale(locale);
   return (
     <ContentContainer className="py-10 sm:py-14">
-      <Suspense fallback={<div className="surface mx-auto h-80 max-w-md animate-pulse" />}>
+      <Suspense fallback={<div className="surface mx-auto h-80 max-w-xl animate-pulse" />}>
         <SignupForm />
       </Suspense>
     </ContentContainer>

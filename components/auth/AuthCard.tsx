@@ -10,7 +10,7 @@ type AuthCardProps = {
 
 export function AuthCard({ eyebrow, title, description, children }: AuthCardProps) {
   return (
-    <Card className="mx-auto grid w-full max-w-md gap-6 p-5 sm:p-6">
+    <Card className="mx-auto grid w-full max-w-xl gap-6 p-5 sm:p-6">
       <div>
         <p className="text-sm font-semibold text-teal-600">{eyebrow}</p>
         <h1 className="mt-2 break-words text-2xl font-semibold text-ink">{title}</h1>

@@ -7,6 +7,14 @@ export default getRequestConfig(async ({ requestLocale }) => {
 
   return {
     locale,
-    messages: (await import(`../messages/${locale}.json`)).default
+    messages: (await import(`../messages/${locale}.json`)).default,
+    onError(error) {
+      if (process.env.NODE_ENV === "development") {
+        console.warn("[i18n]", error.message);
+      }
+    },
+    getMessageFallback({ key, namespace }) {
+      return namespace ? `${namespace}.${key}` : key;
+    }
   };
 });

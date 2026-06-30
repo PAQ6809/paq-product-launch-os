@@ -10,6 +10,16 @@ PAQ Product Launch OS v0.3.6 uses `next-intl` with the Next.js App Router. Phase
 - Static product UI copy lives in `messages/{locale}.json` and is reviewed before commit.
 - `LanguageSwitcher` changes only the locale and keeps the current path.
 
+## Message integrity check
+
+Run the locale guard before shipping copy changes:
+
+```bash
+npm run i18n:check
+```
+
+The check uses `messages/zh-TW.json` as the base key set and fails when another locale is missing a key, contains an empty string, contains two or more repeated ASCII question marks, or contains the Unicode replacement character. Missing runtime translation keys fall back to the readable key path instead of rendering question marks.
+
 Arabic uses `dir="rtl"` at the document level. Report translations set their own direction so Chinese source copy remains LTR inside a bilingual Arabic page. Layouts use logical `start/end` spacing, wrapping, and bounded controls to tolerate longer labels.
 
 ## Report translation pipeline

@@ -38,12 +38,12 @@ export function UserMenu() {
 
   if (!supabase || !email) {
     return (
-      <div className="flex shrink-0 items-center gap-1">
-        <Link href="/login" className="inline-flex min-h-11 items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold text-graphite transition hover:bg-mist hover:text-ink">
+      <div className="flex min-w-0 shrink-0 items-center gap-1">
+        <Link href="/login" className="inline-flex min-h-11 max-w-24 min-w-0 items-center gap-2 truncate rounded-md px-3 py-2 text-sm font-semibold text-graphite transition hover:bg-mist hover:text-ink sm:max-w-32">
           <LogIn size={16} aria-hidden="true" />
-          {t("login")}
+          <span className="truncate">{t("login")}</span>
         </Link>
-        <Link href="/signup" className="hidden min-h-11 items-center rounded-md bg-ink px-3 py-2 text-sm font-semibold text-white transition hover:bg-graphite sm:inline-flex">
+        <Link href="/signup" className="hidden min-h-11 max-w-32 min-w-0 items-center truncate rounded-md bg-ink px-3 py-2 text-sm font-semibold text-white transition hover:bg-graphite lg:inline-flex">
           {t("signup")}
         </Link>
       </div>

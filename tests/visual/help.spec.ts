@@ -23,8 +23,9 @@ test("quick prompt sends and related links display", async ({ page }) => {
   await page.getByRole("button", { name: /AI Help/ }).click();
   await page.getByRole("button", { name: "如何建立產品？" }).click();
 
-  await expect(page.getByText("相關頁面").first()).toBeVisible();
-  await expect(page.getByText(/建立商品企劃|產品列表/).first()).toBeVisible();
+  const dialog = page.getByRole("dialog", { name: "PAQ AI Help" });
+  await expect(dialog.getByText("相關頁面").first()).toBeVisible();
+  await expect(dialog.getByRole("link", { name: /建立商品企劃|產品列表/ }).first()).toBeVisible();
 });
 
 test("out-of-scope help question refuses without provider data", async ({ request }, testInfo) => {

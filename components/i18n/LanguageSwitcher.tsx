@@ -12,12 +12,12 @@ export function LanguageSwitcher() {
   const router = useRouter();
 
   return (
-    <label className="relative inline-flex min-h-11 shrink-0 items-center rounded-md border border-line bg-white text-sm text-ink transition focus-within:border-teal-500">
+    <label className="relative inline-flex min-h-11 max-w-[9.5rem] shrink items-center rounded-md border border-line bg-white text-sm text-ink transition focus-within:border-teal-500">
       <Languages className="pointer-events-none absolute start-3" size={16} aria-hidden="true" />
       <span className="sr-only">{t("change")}</span>
       <select
         aria-label={t("change")}
-        className="min-h-11 max-w-40 cursor-pointer appearance-none rounded-md bg-transparent py-2 pe-8 ps-9 font-medium outline-none"
+        className="min-h-11 w-full min-w-0 cursor-pointer appearance-none truncate rounded-md bg-transparent py-2 pe-8 ps-9 font-medium outline-none"
         value={locale}
         onChange={(event) => router.replace(pathname, { locale: event.target.value as AppLocale })}
       >

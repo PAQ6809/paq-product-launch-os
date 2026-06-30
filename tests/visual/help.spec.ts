@@ -64,6 +64,25 @@ test("default Help provider uses mock and does not return API keys", async ({ re
   expect(JSON.stringify(body)).not.toMatch(/nvapi-|NVIDIA_API_KEY|OPENAI_API_KEY/);
 });
 
+test("security help questions return security scope without leaking secrets", async ({ request }, testInfo) => {
+  const response = await request.post("/api/help-chat", {
+    headers: { "x-forwarded-for": `198.51.100.${testInfo.workerIndex + 60}` },
+    data: {
+      message: "我的資料安全嗎？",
+      history: [],
+      locale: "zh-TW",
+      currentPath: "/zh-TW/settings/security"
+    }
+  });
+
+  expect(response.ok()).toBeTruthy();
+  const body = await response.json();
+  expect(body.scope).toBe("security_help");
+  expect(body.provider).toBe("mock");
+  expect(body.answer).toContain("不構成法律意見");
+  expect(JSON.stringify(body)).not.toMatch(/nvapi-|NVIDIA_API_KEY|OPENAI_API_KEY/);
+});
+
 test("Help rate limit returns 429", async ({ request }, testInfo) => {
   const ip = `203.0.113.${testInfo.workerIndex + 80}`;
   let lastStatus = 0;

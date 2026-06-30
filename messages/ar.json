@@ -245,5 +245,33 @@
     "backLogin": "العودة إلى تسجيل الدخول",
     "syncPrompt": "سجل الدخول للمزامنة",
     "localMode": "وضع demo المحلي"
+  },
+  "help": {
+    "openButton": "AI Help",
+    "title": "AI Help",
+    "subtitle": "هذا المساعد يجيب فقط عن ميزات وخدمات PAQ Product Launch OS.",
+    "scopeNotice": "اسأل عن إنشاء المنتجات أو إنشاء التقارير أو التصدير أو استعادة المسودات أو إعدادات أمان البيانات.",
+    "placeholder": "مثال: ما صيغ التصدير المتاحة؟",
+    "send": "إرسال",
+    "loading": "جار تجهيز الإجابة...",
+    "error": "AI Help غير متاح مؤقتا.",
+    "rateLimited": "وصل AI Help إلى حد demo الحالي. حاول لاحقا.",
+    "outOfScope": "يمكنني المساعدة فقط في ميزات PAQ Product Launch OS وسير تخطيط المنتجات وتصدير التقارير والحسابات وأمان البيانات.",
+    "relatedLinks": "صفحات ذات صلة",
+    "quickPrompts": {
+      "createProduct": "كيف أنشئ منتجا؟",
+      "exportFormats": "ما صيغ التصدير المتاحة؟",
+      "whyLogin": "لماذا أحتاج إلى تسجيل الدخول؟",
+      "autosave": "هل تحفظ المسودات تلقائيا؟",
+      "dataSafety": "هل بياناتي آمنة؟",
+      "collectionReport": "كيف أنشئ تقريرا لعدة منتجات؟"
+    },
+    "badge": {
+      "mock": "Mock Help",
+      "nvidia": "NVIDIA Help",
+      "fallback": "Fallback"
+    },
+    "clearChat": "مسح المحادثة",
+    "close": "إغلاق"
   }
 }

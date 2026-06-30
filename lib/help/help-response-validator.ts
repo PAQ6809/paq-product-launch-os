@@ -1,6 +1,6 @@
 import type { HelpAnswer, HelpProviderName, HelpRelatedLink, HelpScope } from "@/lib/help/provider";
 
-const allowedScopes: HelpScope[] = ["site_help", "account_help", "out_of_scope"];
+const allowedScopes: HelpScope[] = ["site_help", "account_help", "security_help", "out_of_scope"];
 const allowedProviders: HelpProviderName[] = ["mock", "nvidia"];
 const secretPatterns = [/nvapi-[\w-]+/iu, /sk-[\w-]+/iu, /api[_-]?key\s*[:=]/iu];
 
@@ -35,7 +35,7 @@ export function validateHelpAnswerPayload(payload: unknown): HelpAnswerValidatio
   const warning = readString(payload.warning);
 
   if (!answer) errors.push("answer must be a non-empty string.");
-  if (!scope) errors.push("scope must be site_help, account_help, or out_of_scope.");
+  if (!scope) errors.push("scope must be site_help, account_help, security_help, or out_of_scope.");
   if (!provider) errors.push("provider must be mock or nvidia.");
   if (containsSecret(answer) || containsSecret(JSON.stringify(payload))) {
     errors.push("Help answer appears to contain a secret-like value.");

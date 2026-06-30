@@ -146,14 +146,15 @@ export function guardHelpScope(message: string): HelpScopeGuardResult {
   const requiresAccountContext = accountKeywords.some((keyword) =>
     normalized.includes(keyword.toLowerCase())
   );
+  const securityRelated = complianceKeywords.some((keyword) =>
+    normalized.includes(keyword.toLowerCase())
+  );
 
   return {
     allowed: true,
-    scope: requiresAccountContext ? "account_help" : "site_help",
+    scope: securityRelated ? "security_help" : requiresAccountContext ? "account_help" : "site_help",
     requiresAccountContext,
-    needsComplianceDisclaimer: complianceKeywords.some((keyword) =>
-      normalized.includes(keyword.toLowerCase())
-    )
+    needsComplianceDisclaimer: securityRelated
   };
 }
 

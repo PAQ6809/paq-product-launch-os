@@ -7,6 +7,8 @@ export default defineConfig({
   testDir: "./tests/visual",
   outputDir: "test-results/visual",
   fullyParallel: false,
+  // ponytail: Windows Next dev server flakes with CPU-level visual concurrency; use 3 workers until the suite moves to a production test server.
+  workers: 3,
   retries: 0,
   timeout: 60_000,
   expect: {

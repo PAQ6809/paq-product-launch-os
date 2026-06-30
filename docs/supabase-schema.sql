@@ -8,9 +8,28 @@ create table if not exists public.profiles (
   email text,
   display_name text,
   avatar_url text,
+  role text not null default 'user',
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  constraint profiles_role_check check (role in ('user', 'developer', 'admin'))
 );
+
+alter table public.profiles add column if not exists role text not null default 'user';
+alter table public.profiles alter column role set default 'user';
+update public.profiles set role = 'user' where role is null;
+alter table public.profiles alter column role set not null;
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'profiles_role_check'
+      and conrelid = 'public.profiles'::regclass
+  ) then
+    alter table public.profiles
+      add constraint profiles_role_check check (role in ('user', 'developer', 'admin'));
+  end if;
+end $$;
 
 create table if not exists public.products (
   id uuid primary key default gen_random_uuid(),
@@ -174,7 +193,9 @@ alter table public.report_translations enable row level security;
 alter table public.workspace_events enable row level security;
 
 grant usage on schema public to authenticated;
-grant select, insert, update, delete on public.profiles to authenticated;
+revoke insert, update, delete on public.profiles from authenticated;
+grant select on public.profiles to authenticated;
+grant update (display_name, avatar_url, updated_at) on public.profiles to authenticated;
 grant select, insert, update, delete on public.products to authenticated;
 grant select, insert, update, delete on public.product_drafts to authenticated;
 grant select, insert, update, delete on public.launch_reports to authenticated;
@@ -189,10 +210,9 @@ drop policy if exists "profiles_select_own" on public.profiles;
 create policy "profiles_select_own" on public.profiles for select to authenticated
 using ((select auth.uid()) = id);
 drop policy if exists "profiles_insert_own" on public.profiles;
-create policy "profiles_insert_own" on public.profiles for insert to authenticated
-with check ((select auth.uid()) = id);
 drop policy if exists "profiles_update_own" on public.profiles;
-create policy "profiles_update_own" on public.profiles for update to authenticated
+drop policy if exists "profiles_update_display_fields_own" on public.profiles;
+create policy "profiles_update_display_fields_own" on public.profiles for update to authenticated
 using ((select auth.uid()) = id)
 with check ((select auth.uid()) = id);
 

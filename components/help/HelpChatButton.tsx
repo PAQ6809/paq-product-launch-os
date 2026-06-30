@@ -113,7 +113,7 @@ export function HelpChatButton() {
       <button
         type="button"
         aria-label="Open PAQ AI Help"
-        className="fixed bottom-4 right-4 z-40 inline-flex min-h-12 max-w-[calc(100vw-2rem)] items-center gap-2 rounded-md bg-ink px-4 py-2 text-sm font-semibold text-white shadow-lg transition hover:bg-graphite focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600"
+        className="floating-help-trigger fixed inline-flex min-h-12 max-w-[calc(100vw-2rem)] items-center gap-2 rounded-md bg-ink px-4 py-2 text-sm font-semibold text-white shadow-lg transition hover:bg-graphite focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600"
         onClick={() => setIsOpen(true)}
       >
         <HelpCircle size={18} aria-hidden="true" />

@@ -245,5 +245,33 @@
     "backLogin": "Back to login",
     "syncPrompt": "Sign in to sync",
     "localMode": "Local demo mode"
+  },
+  "help": {
+    "openButton": "AI Help",
+    "title": "AI Help",
+    "subtitle": "This assistant only answers questions about PAQ Product Launch OS features and services.",
+    "scopeNotice": "Ask how to create products, generate reports, export files, recover drafts, or review data safety settings.",
+    "placeholder": "Example: What export formats are available?",
+    "send": "Send",
+    "loading": "Preparing an answer...",
+    "error": "AI Help is temporarily unavailable.",
+    "rateLimited": "AI Help has reached the current demo limit. Please try again later.",
+    "outOfScope": "I can only help with PAQ Product Launch OS site features, product planning workflows, report exports, accounts, and data safety.",
+    "relatedLinks": "Related pages",
+    "quickPrompts": {
+      "createProduct": "How do I create a product?",
+      "exportFormats": "What export formats are available?",
+      "whyLogin": "Why do I need to log in?",
+      "autosave": "Are drafts autosaved?",
+      "dataSafety": "Is my data safe?",
+      "collectionReport": "How do I create a multi-product report?"
+    },
+    "badge": {
+      "mock": "Mock Help",
+      "nvidia": "NVIDIA Help",
+      "fallback": "Fallback"
+    },
+    "clearChat": "Clear chat",
+    "close": "Close"
   }
 }

@@ -15,7 +15,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         {t("main")}
       </a>
       <Header />
-      <main id="main-content" className="min-h-[calc(100vh-4rem)] overflow-x-clip" tabIndex={-1}>
+      <main id="main-content" className="floating-widget-safe-area min-h-[calc(100vh-4rem)] overflow-x-clip" tabIndex={-1}>
         {children}
       </main>
       <HelpChatButton />

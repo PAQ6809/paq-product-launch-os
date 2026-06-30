@@ -6,6 +6,10 @@
   color-scheme: light;
   --background: #f7f8f8;
   --foreground: #121417;
+  --z-header: 30;
+  --z-floating-widget: 40;
+  --z-overlay: 50;
+  --floating-widget-clearance: calc(5rem + env(safe-area-inset-bottom, 0px));
 }
 
 * {
@@ -13,12 +17,16 @@
 }
 
 html {
+  max-width: 100%;
+  overflow-x: clip;
   scroll-behavior: smooth;
 }
 
 body {
   min-height: 100vh;
   margin: 0;
+  max-width: 100%;
+  overflow-x: clip;
   background: var(--background);
   color: var(--foreground);
 }
@@ -64,6 +72,20 @@ textarea {
       linear-gradient(rgba(18, 20, 23, 0.05) 1px, transparent 1px),
       linear-gradient(90deg, rgba(18, 20, 23, 0.05) 1px, transparent 1px);
     background-size: 28px 28px;
+  }
+
+  .floating-widget-safe-area {
+    padding-bottom: var(--floating-widget-clearance);
+  }
+
+  .floating-help-trigger {
+    bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+    right: max(1rem, env(safe-area-inset-right, 0px));
+    z-index: var(--z-floating-widget);
+  }
+
+  .help-drawer-overlay {
+    z-index: var(--z-overlay);
   }
 }
 

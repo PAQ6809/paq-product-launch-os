@@ -282,7 +282,7 @@ export function ProductForm() {
             />
           </Field>
 
-          <div className="grid min-h-[5.5rem] gap-3 border-t border-line pt-5 sm:flex sm:items-start sm:justify-between">
+          <div className="grid min-h-[5.5rem] gap-3 border-t border-line pt-5 sm:flex sm:items-start sm:justify-between sm:pe-36 xl:pe-0">
             <div className="min-h-6 min-w-0" aria-live="polite">
               {generationMessage ? (
                 <p className="break-words rounded-md border border-amber-100 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-700">

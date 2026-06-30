@@ -48,3 +48,27 @@
 - [ ] 檢查 `test-results/visual` 的首頁與報告截圖。
 - [ ] 依 `docs/responsive-qa-checklist.md` 補做人工 viewport 檢查。
 - [ ] Production URL 再做一次 Copy、Export、表單送出與 429 smoke test。
+
+## Developer Diagnostics Safety
+
+- [ ] Developer Console is protected by server-side role checks, not client-only UI checks.
+- [ ] UserMenu developer badge is display-only and does not authorize access.
+- [ ] Developer diagnostics show key presence only as `true` / `false`.
+- [ ] Developer diagnostics do not render raw API keys, service role keys, encryption keys, cookies, or tokens.
+- [ ] Demo Developer Mode is clearly labeled when Supabase is not configured.
+- [ ] `/dev`, `/dev/ai-diagnostics`, and `/dev/help-diagnostics` do not create horizontal overflow.
+
+## Floating Widget / Help Center UI Safety Checklist
+
+- [ ] Floating button does not create layout shift when it mounts.
+- [ ] Floating button does not create horizontal overflow on 390, 768, or 1440 width viewports.
+- [ ] Mobile layouts keep bottom safe-area spacing with `env(safe-area-inset-bottom)`.
+- [ ] Floating button does not cover product form submit buttons.
+- [ ] Floating button does not cover primary landing-page or dashboard CTAs.
+- [ ] Floating button does not cover auth submit buttons.
+- [ ] Floating widget z-index stays below drawer, modal, and blocking overlay layers.
+- [ ] Drawer open state has explicit body scroll behavior before release.
+- [ ] Drawer mobile layout stays within the viewport width and height.
+- [ ] Drawer desktop layout overlays from the side without resizing or crushing the page layout.
+- [ ] Esc handling, focus management, focus trap, and aria-live behavior are implemented in the formal Help Center phase.
+- [ ] New Help Center UI work is not merged until visual tests cover the floating button, drawer, primary CTA, auth form, and product form routes.

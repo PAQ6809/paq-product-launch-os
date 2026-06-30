@@ -18,7 +18,7 @@ export const HELP_SYSTEM_PROMPT = `
 JSON 欄位：
 {
   "answer": "string",
-  "scope": "site_help | account_help | out_of_scope",
+  "scope": "site_help | account_help | security_help | out_of_scope",
   "relatedLinks": [{"label": "string", "href": "/locale/path", "description": "string"}],
   "suggestedActions": ["string"],
   "provider": "nvidia",

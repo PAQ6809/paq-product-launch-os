@@ -245,5 +245,33 @@
     "backLogin": "로그인으로 돌아가기",
     "syncPrompt": "로그인하여 동기화",
     "localMode": "로컬 demo 모드"
+  },
+  "help": {
+    "openButton": "AI Help",
+    "title": "AI Help",
+    "subtitle": "이 도우미는 PAQ Product Launch OS 기능과 서비스 관련 질문만 답변합니다.",
+    "scopeNotice": "상품 생성, 보고서 생성, 파일 내보내기, 초안 복구, 데이터 안전 설정을 질문할 수 있습니다.",
+    "placeholder": "예: 어떤 형식으로 내보낼 수 있나요?",
+    "send": "보내기",
+    "loading": "답변을 준비하는 중...",
+    "error": "AI Help 를 일시적으로 사용할 수 없습니다.",
+    "rateLimited": "AI Help 가 현재 demo 제한에 도달했습니다. 나중에 다시 시도하세요.",
+    "outOfScope": "PAQ Product Launch OS 의 사이트 기능, 상품 기획 흐름, 보고서 내보내기, 계정, 데이터 안전 관련 질문만 도와드릴 수 있습니다.",
+    "relatedLinks": "관련 페이지",
+    "quickPrompts": {
+      "createProduct": "상품은 어떻게 만들나요?",
+      "exportFormats": "어떤 형식으로 내보낼 수 있나요?",
+      "whyLogin": "왜 로그인이 필요한가요?",
+      "autosave": "초안은 자동 저장되나요?",
+      "dataSafety": "내 데이터는 안전한가요?",
+      "collectionReport": "여러 상품 보고서는 어떻게 만들나요?"
+    },
+    "badge": {
+      "mock": "Mock Help",
+      "nvidia": "NVIDIA Help",
+      "fallback": "Fallback"
+    },
+    "clearChat": "대화 지우기",
+    "close": "닫기"
   }
 }

@@ -245,5 +245,33 @@
     "backLogin": "返回登入",
     "syncPrompt": "登入以同步資料",
     "localMode": "本機 demo 模式"
+  },
+  "help": {
+    "openButton": "AI Help",
+    "title": "AI Help",
+    "subtitle": "此助理僅回答 PAQ Product Launch OS 網站功能與服務相關問題。",
+    "scopeNotice": "你可以問我如何建立商品、產生報告、匯出檔案、恢復草稿，或了解資料安全設定。",
+    "placeholder": "例如：報告可以匯出哪些格式？",
+    "send": "Send",
+    "loading": "正在整理回答...",
+    "error": "AI Help 暫時無法回應。",
+    "rateLimited": "AI Help 使用次數已達目前 demo 限制，請稍後再試。",
+    "outOfScope": "我目前只能協助 PAQ Product Launch OS 的網站功能、商品企劃流程、報告匯出、帳號與資料安全相關問題。",
+    "relatedLinks": "相關頁面",
+    "quickPrompts": {
+      "createProduct": "如何建立產品？",
+      "exportFormats": "報告可以匯出哪些格式？",
+      "whyLogin": "為什麼我需要登入？",
+      "autosave": "草稿會自動保存嗎？",
+      "dataSafety": "我的資料安全嗎？",
+      "collectionReport": "如何建立多產品報告書？"
+    },
+    "badge": {
+      "mock": "Mock Help",
+      "nvidia": "NVIDIA Help",
+      "fallback": "Fallback"
+    },
+    "clearChat": "清除對話",
+    "close": "關閉"
   }
 }

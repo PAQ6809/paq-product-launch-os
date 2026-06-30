@@ -2,7 +2,7 @@ import type { AppLocale } from "@/i18n/routing";
 
 export type HelpProviderName = "mock" | "nvidia";
 
-export type HelpScope = "site_help" | "account_help" | "out_of_scope";
+export type HelpScope = "site_help" | "account_help" | "security_help" | "out_of_scope";
 
 export type HelpRelatedLink = {
   label: string;

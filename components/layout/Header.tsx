@@ -1,7 +1,8 @@
+import { Suspense } from "react";
 import { PackageCheck } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { LanguageSwitcher } from "@/components/i18n/LanguageSwitcher";
-import { UserMenu } from "@/components/auth/UserMenu";
+import { UserMenuServer } from "@/components/auth/UserMenuServer";
 import { ContentContainer } from "@/components/layout/ContentContainer";
 import { Link } from "@/i18n/navigation";
 
@@ -39,7 +40,9 @@ export function Header() {
             ))}
           </nav>
           <LanguageSwitcher />
-          <UserMenu />
+          <Suspense fallback={null}>
+            <UserMenuServer />
+          </Suspense>
         </div>
       </ContentContainer>
     </header>

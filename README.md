@@ -19,6 +19,7 @@ PAQ Product Launch OS 是一個商品上市 AI Demo：
 - Local persistence：demo 商品與使用者建立的商品會保存在 localStorage。
 - AI provider：可切換 MockAIProvider / OpenAIProvider，沒有 API key 或 OpenAI 回傳格式錯誤時自動 fallback。
 - API safety：商品報告 API 具備 IP-based rate limit，公開 production demo 預設強制使用 MockAIProvider。
+- Developer role：`profiles.role` 控制 developer/admin 診斷頁存取，前端只顯示 server-side role 結果，不暴露 API key 或 secret。
 
 ## 技術棧
 
@@ -55,6 +56,21 @@ npm run test:visual:update
 ```
 
 `test:visual:update` 預留給未來加入 snapshot comparison；目前與 capture 測試使用相同 routes。CI 暫不啟用，避免 visual environment 差異阻擋一般 build。
+
+## Developer QA / Frontend QA
+
+v0.4.6-pre is the UI safety baseline before extending the AI Help Center. It verifies that `AppShell`, `Header`, `LanguageSwitcher`, `UserMenu`, auth pages, core routes, and the existing floating help entry do not create layout shift, horizontal overflow, or covered primary actions.
+
+Run the full preflight gate before merging Help Center UI work:
+
+```bash
+npm run i18n:check
+npm run lint
+npm run build
+npm run test:visual
+```
+
+The visual suite covers 390x844, 768x1024, and 1440x900. It checks auth text integrity, header/body overflow, language switcher bounds, primary CTA usability, and floating widget overlap safety.
 
 ## 本地啟動
 
@@ -199,6 +215,7 @@ RATE_LIMIT_MAX_REQUESTS=5
 - `docs/responsive-qa-checklist.md`
 - `docs/frontend-quality-checklist.md`
 - `docs/localization.md`
+- `docs/developer-role.md`
 
 ## v0.4 Auth + Workspace + Autosave
 
@@ -224,6 +241,21 @@ SUPABASE_SERVICE_ROLE_KEY=
 ```
 
 The frontend only uses the publishable/anon key. Workspace API routes validate the Supabase session server-side and never trust a client-supplied `user_id`. If the user is anonymous or Supabase is not configured, the app falls back to local/demo persistence.
+
+## v0.4.x Developer Role / Admin Safety
+
+Developer diagnostics live at `/dev`, which is localized by middleware to `/{locale}/dev`. In production with Supabase configured, developer pages call server-side role helpers before rendering:
+
+- `lib/auth/roles.ts`: `getCurrentUserProfile`, `getCurrentUserRole`, `isDeveloper`, `requireDeveloper`, `isAdmin`, `requireAdmin`.
+- `app/[locale]/dev`: safe Developer Console.
+- `app/[locale]/dev/ai-diagnostics`: AI provider safety status.
+- `app/[locale]/dev/help-diagnostics`: Help Center provider safety status.
+
+Formal developer access requires a signed-in Supabase user and `public.profiles.role` set to `developer` or `admin`. The UserMenu badge and Developer Console link are display-only; route protection is server-side. When Supabase is not configured, `/dev` shows Demo Developer Mode with mock diagnostics and no real account claim.
+
+In production, developer routes are closed unless `ENABLE_DEV_DIAGNOSTICS=true` and the signed-in user has `developer` or `admin` role. Production does not fall back to Demo Developer Mode when Supabase is missing.
+
+The console may show provider names, public AI booleans, rate-limit settings, i18n status, and whether OpenAI/NVIDIA keys are configured as `true` or `false`. It must not show raw API keys, service role keys, encryption keys, auth tokens, cookies, or raw environment dumps. Grant/revoke SQL templates are in `docs/developer-role.md`.
 
 ## v0.4.5 Security / Compliance / Professional Reports
 
@@ -303,6 +335,7 @@ Key files:
 - `components/help/HelpChatButton.tsx`
 - `docs/ai-help-center.md`
 - `docs/help-knowledge-base.md`
+- `docs/help-audit-plan.md`
 
 Help env:
 

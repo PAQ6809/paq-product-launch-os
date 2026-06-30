@@ -39,7 +39,7 @@ export function HelpChatDrawer({
   }
 
   return (
-    <div className="fixed inset-0 z-50" role="presentation">
+    <div className="help-drawer-overlay fixed inset-0" role="presentation">
       <button
         type="button"
         className="absolute inset-0 bg-ink/20"

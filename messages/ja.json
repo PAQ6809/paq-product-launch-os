@@ -245,5 +245,33 @@
     "backLogin": "ログインに戻る",
     "syncPrompt": "ログインして同期",
     "localMode": "ローカル demo モード"
+  },
+  "help": {
+    "openButton": "AI Help",
+    "title": "AI Help",
+    "subtitle": "このアシスタントは PAQ Product Launch OS の機能とサービスに関する質問だけに回答します。",
+    "scopeNotice": "商品作成、レポート生成、ファイル書き出し、下書き復元、データ安全設定について質問できます。",
+    "placeholder": "例：どの形式で書き出せますか？",
+    "send": "送信",
+    "loading": "回答を準備しています...",
+    "error": "AI Help は一時的に利用できません。",
+    "rateLimited": "AI Help は現在の demo 上限に達しました。後ほどお試しください。",
+    "outOfScope": "PAQ Product Launch OS のサイト機能、商品企画フロー、レポート書き出し、アカウント、データ安全に関する質問のみサポートします。",
+    "relatedLinks": "関連ページ",
+    "quickPrompts": {
+      "createProduct": "商品はどう作成しますか？",
+      "exportFormats": "どの形式で書き出せますか？",
+      "whyLogin": "なぜログインが必要ですか？",
+      "autosave": "下書きは自動保存されますか？",
+      "dataSafety": "データは安全ですか？",
+      "collectionReport": "複数商品のレポートはどう作りますか？"
+    },
+    "badge": {
+      "mock": "Mock Help",
+      "nvidia": "NVIDIA Help",
+      "fallback": "Fallback"
+    },
+    "clearChat": "会話をクリア",
+    "close": "閉じる"
   }
 }

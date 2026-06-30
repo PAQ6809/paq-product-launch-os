@@ -62,6 +62,8 @@ Route 會執行：
 8. provider 失敗或驗證失敗時 fallback 到 MockHelpProvider。
 9. 只記錄 metadata audit event，不保存完整對話。
 
+詳細 audit metadata 契約見 `docs/help-audit-plan.md`。
+
 ## Scope Guard
 
 Help Center 只回答：
@@ -73,6 +75,8 @@ Help Center 只回答：
 - 翻譯與 locale
 - 帳號與資料保存
 - 安全、隱私、RLS、encryption、audit
+
+Provider 回傳的 `scope` 必須是 `site_help`、`account_help`、`security_help` 或 `out_of_scope`。安全、隱私、資料刪除、RLS、encryption、audit 與 API key 相關問題應使用 `security_help`，並保留合規提醒。
 
 出界問題會固定回覆：
 

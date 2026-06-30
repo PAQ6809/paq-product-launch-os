@@ -1,13 +1,18 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { LogIn, LogOut, UserCircle } from "lucide-react";
+import { Code2, LogIn, LogOut, UserCircle } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/Button";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { Link, useRouter } from "@/i18n/navigation";
 
-export function UserMenu() {
+type UserMenuProps = {
+  roleLabel?: "Developer" | "Admin";
+  showDeveloperConsole?: boolean;
+};
+
+export function UserMenu({ roleLabel, showDeveloperConsole = false }: UserMenuProps) {
   const t = useTranslations("auth");
   const router = useRouter();
   const [email, setEmail] = useState<string | null>(null);
@@ -51,11 +56,26 @@ export function UserMenu() {
   }
 
   return (
-    <div className="flex min-w-0 shrink-0 items-center gap-2">
+    <div className="flex min-w-0 shrink-0 items-center gap-1 sm:gap-2">
       <span className="hidden max-w-40 items-center gap-1 truncate text-sm font-semibold text-graphite sm:inline-flex">
         <UserCircle size={16} aria-hidden="true" />
         {email}
       </span>
+      {roleLabel ? (
+        <span className="hidden rounded-full border border-teal-200 bg-teal-50 px-2.5 py-1 text-xs font-semibold text-teal-700 lg:inline-flex">
+          {roleLabel}
+        </span>
+      ) : null}
+      {showDeveloperConsole ? (
+        <Link
+          href="/dev"
+          aria-label="Developer Console"
+          className="inline-flex min-h-10 w-10 shrink-0 items-center justify-center rounded-md border border-line bg-white text-sm font-semibold text-ink transition hover:border-teal-500 hover:text-teal-600 md:w-auto md:px-3"
+        >
+          <Code2 size={16} aria-hidden="true" />
+          <span className="hidden md:inline">Developer Console</span>
+        </Link>
+      ) : null}
       <Button variant="ghost" size="sm" onClick={() => void signOut()}>
         <LogOut size={16} aria-hidden="true" />
         {t("signOut")}

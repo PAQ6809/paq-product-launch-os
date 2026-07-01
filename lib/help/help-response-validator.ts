@@ -2,7 +2,14 @@ import type { HelpAnswer, HelpProviderName, HelpRelatedLink, HelpScope } from "@
 
 const allowedScopes: HelpScope[] = ["site_help", "account_help", "security_help", "out_of_scope"];
 const allowedProviders: HelpProviderName[] = ["mock", "nvidia"];
-const secretPatterns = [/nvapi-[\w-]+/iu, /sk-[\w-]+/iu, /api[_-]?key\s*[:=]/iu];
+const secretPatterns = [
+  /nvapi-[\w-]+/iu,
+  /sk-[\w-]+/iu,
+  /api[_-]?key\s*[:=]/iu,
+  /\b(?:OPENAI|NVIDIA|SUPABASE|ENCRYPTION)_[A-Z0-9_]*(?:KEY|TOKEN|SECRET)\b/u,
+  /\bSUPABASE_SERVICE_ROLE_KEY\b/u,
+  /\bENCRYPTION_MASTER_KEY\b/u
+];
 
 export type HelpAnswerValidationResult =
   | { ok: true; answer: HelpAnswer }

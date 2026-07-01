@@ -32,6 +32,7 @@ test("developer console redirects through locale and shows safe development demo
   await expect(page.getByText("Demo Developer Mode").first()).toBeVisible();
   await expect(page.getByText("OpenAI key configured")).toBeVisible();
   await expect(page.getByText("NVIDIA key configured")).toBeVisible();
+  await expect(page.getByRole("button", { name: /AI Help/ })).toHaveCount(0);
   await expectNoSecretLeak(page);
   await expectNoHorizontalOverflow(page);
 });
@@ -40,6 +41,7 @@ test("developer diagnostics routes do not expose secrets", async ({ page }) => {
   for (const route of ["/zh-TW/dev/ai-diagnostics", "/zh-TW/dev/help-diagnostics"]) {
     await page.goto(route);
     await expect(page.locator("main h1")).toBeVisible();
+    await expect(page.getByRole("button", { name: /AI Help/ })).toHaveCount(0);
     await expectNoSecretLeak(page);
     await expectNoHorizontalOverflow(page);
   }

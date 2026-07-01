@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Loader2, Send, X } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { HelpChatMessage, type HelpUiMessage } from "@/components/help/HelpChatMessage";
 import { HelpQuickPrompts } from "@/components/help/HelpQuickPrompts";
 import { Button } from "@/components/ui/Button";
@@ -11,14 +12,17 @@ export function HelpChatDrawer({
   isLoading,
   errorMessage,
   onClose,
+  onClear,
   onSend
 }: {
   messages: HelpUiMessage[];
   isLoading: boolean;
   errorMessage?: string;
   onClose: () => void;
+  onClear: () => void;
   onSend: (message: string) => void;
 }) {
+  const t = useTranslations("help");
   const [draft, setDraft] = useState("");
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -30,6 +34,15 @@ export function HelpChatDrawer({
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ block: "end" });
   }, [messages, isLoading]);
+
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, []);
 
   function submit() {
     const next = draft.trim();
@@ -43,7 +56,7 @@ export function HelpChatDrawer({
       <button
         type="button"
         className="absolute inset-0 bg-ink/20"
-        aria-label="Close AI Help overlay"
+        aria-label={t("close")}
         onClick={onClose}
       />
       <section
@@ -56,16 +69,16 @@ export function HelpChatDrawer({
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-teal-600">PAQ Product Launch OS</p>
-              <h2 className="mt-1 text-lg font-semibold text-ink">AI Help</h2>
+              <h2 className="mt-1 text-lg font-semibold text-ink">{t("title")}</h2>
               <p className="mt-1 text-xs leading-5 text-graphite/68">
-                此助理僅回答 PAQ Product Launch OS 網站功能與服務相關問題。
+                {t("subtitle")}
               </p>
             </div>
             <button
               ref={closeButtonRef}
               type="button"
               className="inline-flex min-h-10 items-center justify-center rounded-md px-3 py-2 text-graphite transition hover:bg-mist hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600"
-              aria-label="Close AI Help"
+              aria-label={t("close")}
               onClick={onClose}
             >
               <X size={18} aria-hidden="true" />
@@ -77,7 +90,7 @@ export function HelpChatDrawer({
           <div className="grid gap-4">
             {messages.length === 0 ? (
               <div className="rounded-md border border-teal-100 bg-teal-50 p-3 text-sm leading-6 text-teal-700">
-                你可以問我如何建立商品、產生報告、匯出檔案、恢復草稿，或了解資料安全設定。
+                {t("scopeNotice")}
               </div>
             ) : null}
 
@@ -90,7 +103,7 @@ export function HelpChatDrawer({
             {isLoading ? (
               <div className="inline-flex items-center gap-2 rounded-md border border-line bg-white p-3 text-sm text-graphite/72">
                 <Loader2 size={16} className="animate-spin" aria-hidden="true" />
-                正在整理回答...
+                {t("loading")}
               </div>
             ) : null}
 
@@ -111,13 +124,13 @@ export function HelpChatDrawer({
           }}
         >
           <label className="sr-only" htmlFor="paq-help-message">
-            Ask PAQ AI Help
+            {t("placeholder")}
           </label>
           <textarea
             id="paq-help-message"
             className="min-h-24 w-full resize-none rounded-md border border-line bg-white p-3 text-sm leading-6 text-ink outline-none transition placeholder:text-graphite/45 focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
             value={draft}
-            placeholder="例如：報告可以匯出哪些格式？"
+            placeholder={t("placeholder")}
             maxLength={1000}
             onChange={(event) => setDraft(event.target.value)}
             onKeyDown={(event) => {
@@ -128,11 +141,16 @@ export function HelpChatDrawer({
             }}
           />
           <div className="mt-3 flex items-center justify-between gap-3">
-            <p className="text-xs text-graphite/55">不會長期保存完整對話。</p>
-            <Button type="submit" disabled={isLoading || !draft.trim()}>
-              <Send size={16} aria-hidden="true" />
-              Send
+            <Button type="button" variant="ghost" size="sm" disabled={messages.length === 0 || isLoading} onClick={onClear}>
+              {t("clearChat")}
             </Button>
+            <div className="flex items-center gap-2">
+              <p className="hidden text-xs text-graphite/55 sm:block">{t("privacyNote")}</p>
+              <Button type="submit" disabled={isLoading || !draft.trim()}>
+                <Send size={16} aria-hidden="true" />
+                {t("send")}
+              </Button>
+            </div>
           </div>
         </form>
       </section>

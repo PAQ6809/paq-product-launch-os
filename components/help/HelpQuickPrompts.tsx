@@ -1,13 +1,7 @@
-import { Button } from "@/components/ui/Button";
+"use client";
 
-const quickPrompts = [
-  "如何建立產品？",
-  "報告可以匯出哪些格式？",
-  "為什麼我需要登入？",
-  "草稿會自動保存嗎？",
-  "我的資料安全嗎？",
-  "如何建立多產品報告書？"
-];
+import { useTranslations } from "next-intl";
+import { Button } from "@/components/ui/Button";
 
 export function HelpQuickPrompts({
   disabled,
@@ -16,6 +10,16 @@ export function HelpQuickPrompts({
   disabled?: boolean;
   onSelect: (prompt: string) => void;
 }) {
+  const t = useTranslations("help.quickPrompts");
+  const quickPrompts = [
+    t("createProduct"),
+    t("exportFormats"),
+    t("whyLogin"),
+    t("autosave"),
+    t("dataSafety"),
+    t("collectionReport")
+  ];
+
   return (
     <div className="grid gap-2 sm:grid-cols-2">
       {quickPrompts.map((prompt) => (

@@ -1,3 +1,6 @@
+"use client";
+
+import { useTranslations } from "next-intl";
 import { HelpProviderBadge } from "@/components/help/HelpProviderBadge";
 import { HelpRelatedLinks } from "@/components/help/HelpRelatedLinks";
 import type { HelpProviderName, HelpRelatedLink } from "@/lib/help/provider";
@@ -13,13 +16,14 @@ export type HelpUiMessage = {
 };
 
 export function HelpChatMessage({ message }: { message: HelpUiMessage }) {
+  const t = useTranslations("help");
   const isAssistant = message.role === "assistant";
 
   return (
     <article className={isAssistant ? "rounded-md border border-line bg-white p-3" : "ml-auto max-w-[90%] rounded-md bg-ink p-3 text-white"}>
       <div className="flex flex-wrap items-center gap-2">
         <p className={isAssistant ? "text-xs font-semibold text-graphite/55" : "text-xs font-semibold text-white/72"}>
-          {isAssistant ? "AI Help" : "你"}
+          {isAssistant ? t("assistantLabel") : t("userLabel")}
         </p>
         {isAssistant && message.provider ? (
           <HelpProviderBadge provider={message.provider} isFallback={message.isFallback} />

@@ -24,6 +24,6 @@ ${input.relatedLinks.map((link) => `- ${link.label}: ${link.href} (${link.descri
 最小帳號摘要：
 ${JSON.stringify(input.userContextSummary ?? { isLoggedIn: Boolean(input.userId) })}
 
-請用繁體中文回答，除非使用者明確要求英文。回答要具體、短而可操作，並保留上方 JSON 格式。
+請優先使用「語系」欄位指定的語言回答；如果語系不是你能穩定產出的語言，請使用繁體中文。回答要具體、短而可操作，並保留上方 JSON 格式。
 `.trim();
 }

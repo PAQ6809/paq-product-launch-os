@@ -14,7 +14,7 @@ test("AI Help drawer opens, closes, and handles Escape", async ({ page }) => {
   await expect(page.getByRole("dialog", { name: "PAQ AI Help" })).toHaveCount(0);
 
   await page.getByRole("button", { name: /AI Help/ }).click();
-  await page.getByRole("dialog", { name: "PAQ AI Help" }).getByRole("button", { name: "Close AI Help" }).click();
+  await page.getByRole("dialog", { name: "PAQ AI Help" }).getByRole("button", { name: "關閉" }).click();
   await expect(page.getByRole("dialog", { name: "PAQ AI Help" })).toHaveCount(0);
 });
 
@@ -46,6 +46,23 @@ test("out-of-scope help question refuses without provider data", async ({ reques
   expect(JSON.stringify(body)).not.toContain("nvapi-");
 });
 
+test("homework writing is out of scope", async ({ request }, testInfo) => {
+  const response = await request.post("/api/help-chat", {
+    headers: { "x-forwarded-for": `198.51.100.${testInfo.workerIndex + 20}` },
+    data: {
+      message: "幫我寫一份作業",
+      history: [],
+      locale: "zh-TW",
+      currentPath: "/zh-TW"
+    }
+  });
+
+  expect(response.ok()).toBeTruthy();
+  const body = await response.json();
+  expect(body.scope).toBe("out_of_scope");
+  expect(body.provider).toBe("mock");
+});
+
 test("default Help provider uses mock and does not return API keys", async ({ request }, testInfo) => {
   const response = await request.post("/api/help-chat", {
     headers: { "x-forwarded-for": `198.51.100.${testInfo.workerIndex + 40}` },
@@ -62,6 +79,24 @@ test("default Help provider uses mock and does not return API keys", async ({ re
   expect(body.provider).toBe("mock");
   expect(body.relatedLinks.length).toBeGreaterThan(0);
   expect(JSON.stringify(body)).not.toMatch(/nvapi-|NVIDIA_API_KEY|OPENAI_API_KEY/);
+});
+
+test("anonymous account help uses minimal login guidance", async ({ request }, testInfo) => {
+  const response = await request.post("/api/help-chat", {
+    headers: { "x-forwarded-for": `198.51.100.${testInfo.workerIndex + 50}` },
+    data: {
+      message: "我的歷史產品在哪裡？",
+      history: [],
+      locale: "zh-TW",
+      currentPath: "/zh-TW/dashboard"
+    }
+  });
+
+  expect(response.ok()).toBeTruthy();
+  const body = await response.json();
+  expect(body.scope).toBe("account_help");
+  expect(body.answer).toContain("匿名模式");
+  expect(JSON.stringify(body)).not.toMatch(/productName|features|longDescription|NVIDIA_API_KEY|OPENAI_API_KEY/);
 });
 
 test("security help questions return security scope without leaking secrets", async ({ request }, testInfo) => {
@@ -114,4 +149,11 @@ test("mobile drawer has no horizontal overflow", async ({ page }) => {
   }));
 
   expect(layout.scrollWidth).toBeLessThanOrEqual(layout.clientWidth + 1);
+});
+
+test("developer diagnostics routes do not render the public Help widget", async ({ page }) => {
+  for (const route of ["/zh-TW/dev", "/zh-TW/dev/ai-diagnostics", "/zh-TW/dev/help-diagnostics"]) {
+    await page.goto(route);
+    await expect(page.getByRole("button", { name: /AI Help/ })).toHaveCount(0);
+  }
 });

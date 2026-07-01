@@ -89,7 +89,8 @@ export async function POST(request: Request) {
       eventType: "help_chat_out_of_scope",
       scope: "out_of_scope",
       provider: "mock",
-      currentPath: body.currentPath
+      currentPath: body.currentPath,
+      locale: body.locale
     });
 
     return NextResponse.json(
@@ -144,7 +145,8 @@ export async function POST(request: Request) {
       scope: validation.answer.scope,
       provider: validation.answer.provider,
       isFallback: validation.answer.isFallback,
-      currentPath: body.currentPath
+      currentPath: body.currentPath,
+      locale: body.locale
     });
 
     return NextResponse.json(
@@ -171,7 +173,8 @@ export async function POST(request: Request) {
       scope: fallbackAnswer.scope,
       provider: "mock",
       isFallback: true,
-      currentPath: body.currentPath
+      currentPath: body.currentPath,
+      locale: body.locale
     });
 
     return NextResponse.json(

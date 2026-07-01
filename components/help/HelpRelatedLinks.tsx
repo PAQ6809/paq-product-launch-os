@@ -1,13 +1,18 @@
+"use client";
+
+import { useTranslations } from "next-intl";
 import type { HelpRelatedLink } from "@/lib/help/provider";
 
 export function HelpRelatedLinks({ links }: { links: HelpRelatedLink[] }) {
+  const t = useTranslations("help");
+
   if (links.length === 0) {
     return null;
   }
 
   return (
     <div className="mt-3 grid gap-2">
-      <p className="text-xs font-semibold text-graphite/55">相關頁面</p>
+      <p className="text-xs font-semibold text-graphite/55">{t("relatedLinks")}</p>
       {links.map((link) => (
         <a
           key={`${link.href}-${link.label}`}

@@ -114,6 +114,8 @@ Help 不會把完整商品資料、報告內容或私密對話塞進 prompt。
 
 全站右下角顯示 `AI Help` 浮動按鈕。桌機為右側 drawer，手機為底部/全寬面板。對話只用 sessionStorage 短期保存，最多保存 `HELP_MAX_MESSAGES_PER_THREAD` 筆。
 
+Help UI 文案使用 `messages/*.json` 的 `help.*` keys，避免硬編碼問號 fallback。Developer Console 與 diagnostics routes 不顯示 public Help widget，避免診斷頁被一般使用者助理入口混淆。
+
 內建 quick prompts：
 
 - 如何建立產品？
@@ -131,3 +133,4 @@ Help 不會把完整商品資料、報告內容或私密對話塞進 prompt。
 - 問「幫我推薦股票」應 out-of-scope，且不呼叫 NVIDIA。
 - 沒有 `NVIDIA_API_KEY` 時應使用 MockHelpProvider。
 - 超過 Help rate limit 應回 429。
+- `/zh-TW/dev`、`/zh-TW/dev/ai-diagnostics`、`/zh-TW/dev/help-diagnostics` 不應顯示 Help widget。

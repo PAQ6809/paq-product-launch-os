@@ -29,7 +29,9 @@ function buildMockAnswer(input: HelpQuestionInput, needsComplianceDisclaimer: bo
   const account = input.userContextSummary;
   const parts: string[] = [];
 
-  if (message.includes("匯出") || message.includes("export")) {
+  if (message.includes("登入") || message.includes("帳號") || message.includes("歷史") || message.includes("我的")) {
+    parts.push(account?.isLoggedIn ? buildAccountSummary(account) : "匿名模式可以看 demo 與保留本機草稿；若要跨裝置保存商品、報告、匯出紀錄與多產品報告書，需要登入。");
+  } else if (message.includes("匯出") || message.includes("export")) {
     parts.push("報告目前可匯出 Markdown、JSON、HTML、CSV summary、ZIP package，以及 Shopify、Shopee、Pinkoi、Amazon、Etsy 可複製商品頁模板。PDF、DOCX、PPTX 目前是 roadmap。");
   } else if (message.includes("建立") || message.includes("產品") || message.includes("商品")) {
     parts.push("你可以到「建立商品企劃」輸入商品名稱、類別、功能、成本、售價、目標客群、品牌風格、銷售平台與圖片。送出後會走 server-side report API，沒有真 AI key 時會用 Mock 報告保留 demo flow。");
@@ -37,8 +39,6 @@ function buildMockAnswer(input: HelpQuestionInput, needsComplianceDisclaimer: bo
     parts.push("商品輸入頁支援 autosave。匿名使用時先保存在本機；登入後可把匿名草稿匯入 workspace，避免重新填表。");
   } else if (message.includes("安全") || message.includes("隱私") || message.includes("資料")) {
     parts.push("第三方 AI key 只放在 server-side 環境變數，不會送到前端。登入後的 workspace 資料以 Supabase RLS 依 user_id 隔離，安全中心提供資料匯出與刪除請求入口。");
-  } else if (message.includes("登入") || message.includes("帳號") || message.includes("歷史")) {
-    parts.push(account?.isLoggedIn ? buildAccountSummary(account) : "匿名模式可以看 demo 與保留本機草稿；若要跨裝置保存商品、報告、匯出紀錄與多產品報告書，需要登入。");
   } else if (message.includes("collection") || message.includes("多產品") || message.includes("matrix")) {
     parts.push("多產品報告書可在 Report Collections 建立，把多個商品整理成一份 report collection，並用 Product Matrix 比較定位、價格、客群、上市狀態與風險。");
   } else {

@@ -18,6 +18,7 @@ v0.4.6 Help Center 只記錄必要 metadata，不保存完整使用者問題、�
 - `provider`：`mock` 或 `nvidia`
 - `isFallback`
 - `currentPath`
+- `locale`
 - `createdAt`
 
 ## Privacy Rules

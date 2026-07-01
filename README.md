@@ -350,4 +350,4 @@ NVIDIA_API_KEY=
 NVIDIA_MODEL=minimaxai/minimax-m2.7
 ```
 
-Frontend components only call `POST /api/help-chat`; NVIDIA is server-side only. Without `NVIDIA_API_KEY`, or when `ENABLE_PUBLIC_HELP_AI=false`, the assistant uses `MockHelpProvider`. Help chat uses sessionStorage for short-term UI memory and audit logs only metadata, not full conversations.
+Frontend components only call `POST /api/help-chat`; NVIDIA is server-side only. Without `NVIDIA_API_KEY`, or when `ENABLE_PUBLIC_HELP_AI=false`, the assistant uses `MockHelpProvider`. Help chat uses sessionStorage for short-term UI memory and audit logs only metadata, not full conversations. The public Help widget is hidden on developer diagnostics routes, and Help UI copy is managed through `messages/*.json`.

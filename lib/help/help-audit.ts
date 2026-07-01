@@ -16,6 +16,7 @@ export async function trackHelpChatEvent(input: {
   provider?: HelpProviderName;
   isFallback?: boolean;
   currentPath?: string;
+  locale?: string;
 }) {
   try {
     await trackSecurityEvent(input.userId, input.eventType, {
@@ -23,6 +24,7 @@ export async function trackHelpChatEvent(input: {
       provider: input.provider,
       isFallback: input.isFallback,
       currentPath: input.currentPath,
+      locale: input.locale,
       createdAt: new Date().toISOString()
     });
   } catch {

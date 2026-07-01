@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { HelpCircle } from "lucide-react";
-import { useLocale } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { usePathname } from "@/i18n/navigation";
 import { HelpChatDrawer } from "@/components/help/HelpChatDrawer";
 import type { HelpUiMessage } from "@/components/help/HelpChatMessage";
@@ -13,7 +13,10 @@ const maxMessages = 20;
 export function HelpChatButton() {
   const locale = useLocale();
   const pathname = usePathname();
+  const t = useTranslations("help");
   const storageKey = useMemo(() => `paq-help-chat:${locale}`, [locale]);
+  const currentPath = useMemo(() => buildLocalizedPath(locale, pathname), [locale, pathname]);
+  const isDeveloperRoute = isDevPath(currentPath);
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<HelpUiMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -78,7 +81,7 @@ export function HelpChatButton() {
           message: trimmed,
           history,
           locale,
-          currentPath: pathname
+          currentPath
         })
       });
       const data = (await response.json()) as Partial<HelpChatApiResponse> & {
@@ -93,7 +96,7 @@ export function HelpChatButton() {
       const assistantMessage: HelpUiMessage = {
         id: createMessageId(),
         role: "assistant",
-        content: data.answer ?? "目前無法產生回答，請稍後再試。",
+        content: data.answer ?? t("error"),
         provider: data.provider,
         isFallback: data.isFallback,
         warning: data.warning,
@@ -102,22 +105,26 @@ export function HelpChatButton() {
 
       setMessages((current) => [...current, assistantMessage].slice(-maxMessages));
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "AI Help 暫時無法回應。");
+      setErrorMessage(error instanceof Error ? error.message : t("error"));
     } finally {
       setIsLoading(false);
     }
+  }
+
+  if (isDeveloperRoute) {
+    return null;
   }
 
   return (
     <>
       <button
         type="button"
-        aria-label="Open PAQ AI Help"
+        aria-label={t("openButton")}
         className="floating-help-trigger fixed inline-flex min-h-12 max-w-[calc(100vw-2rem)] items-center gap-2 rounded-md bg-ink px-4 py-2 text-sm font-semibold text-white shadow-lg transition hover:bg-graphite focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600"
         onClick={() => setIsOpen(true)}
       >
         <HelpCircle size={18} aria-hidden="true" />
-        <span>AI Help</span>
+        <span>{t("openButton")}</span>
       </button>
 
       {isOpen ? (
@@ -126,6 +133,10 @@ export function HelpChatButton() {
           isLoading={isLoading}
           errorMessage={errorMessage}
           onClose={() => setIsOpen(false)}
+          onClear={() => {
+            setMessages([]);
+            setErrorMessage("");
+          }}
           onSend={(message) => void sendMessage(message)}
         />
       ) : null}
@@ -139,6 +150,18 @@ function createMessageId() {
   }
 
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function buildLocalizedPath(locale: string, pathname: string) {
+  if (pathname === `/${locale}` || pathname.startsWith(`/${locale}/`)) {
+    return pathname;
+  }
+
+  return pathname === "/" ? `/${locale}` : `/${locale}${pathname}`;
+}
+
+function isDevPath(pathname: string) {
+  return /^\/[^/]+\/dev(?:\/|$)/u.test(pathname) || /^\/dev(?:\/|$)/u.test(pathname);
 }
 
 function normalizeStoredMessages(value: unknown): HelpUiMessage[] {

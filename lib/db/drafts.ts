@@ -40,14 +40,6 @@ export async function getDraft(userId: string, draftId: string) {
 
 export async function upsertDraft(userId: string, data: { draftKey: string; formData: NewProductDraft; productId?: string | null; currentStep?: string; completionPercent?: number }) {
   const supabase = await requireDb();
-  const existing = await supabase
-    .from("product_drafts")
-    .select("id")
-    .eq("user_id", userId)
-    .eq("draft_key", data.draftKey)
-    .maybeSingle();
-  if (existing.error) throw new Error(existing.error.message);
-
   const payload = {
     user_id: userId,
     product_id: data.productId ?? null,
@@ -59,10 +51,11 @@ export async function upsertDraft(userId: string, data: { draftKey: string; form
     updated_at: new Date().toISOString()
   };
 
-  const query = existing.data
-    ? supabase.from("product_drafts").update(payload).eq("id", existing.data.id).select("*").single()
-    : supabase.from("product_drafts").insert(payload).select("*").single();
-  const { data: row, error } = await query;
+  const { data: row, error } = await supabase
+    .from("product_drafts")
+    .upsert(payload, { onConflict: "user_id,draft_key" })
+    .select("*")
+    .single();
   if (error) throw new Error(error.message);
   return draftFromRow(row as DraftRow);
 }

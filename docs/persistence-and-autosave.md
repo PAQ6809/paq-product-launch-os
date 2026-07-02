@@ -26,7 +26,9 @@ v0.4 的保存策略是 local-first、cloud-enhanced：匿名 demo 必須永遠�
 3. 如果已登入，hook 會呼叫 `POST /api/drafts` 嘗試同步雲端。
 4. 如果 API 回傳 401 或網路失敗，畫面標示 local-only，但不阻擋使用者。
 5. 重新整理後，`ResumeDraftBanner` 可載入本機草稿。
-6. 登入後可用 `SyncAnonymousDraftDialog` 將匿名草稿匯入 Supabase。
+6. 登入且 Supabase env 已設定時，商品輸入頁會呼叫 `GET /api/drafts` 讀取最新雲端草稿。
+7. 若雲端草稿比本機草稿新，`ResumeDraftBanner` 會標示「雲端 workspace 草稿」，使用者點擊後才會恢復到表單。
+8. 登入後可用 `SyncAnonymousDraftDialog` 將匿名草稿匯入 Supabase。
 
 ## 表單送出 Flow
 
@@ -64,10 +66,12 @@ v0.4 刻意保留重複的 localStorage 與 cloud persistence，原因是 demo �
 - report section review state 尚未保存到資料庫。
 - translation cloud persistence 已有 schema，但 v0.4 UI 仍以 localStorage cache 為主。
 - 匿名草稿 import 第一版只同步 draft，不自動建立完整 product。
+- `product_drafts(user_id, draft_key)` 需要唯一約束，讓 autosave 使用 atomic upsert，避免重複草稿列。
 
 ## Production 建議
 
 - 啟用 Supabase RLS 並先用測試帳號驗證跨帳號不可讀寫。
+- 執行 `docs/supabase-schema.sql` 後，確認 `product_drafts_user_draft_key_unique` 已建立；若既有資料有重複 `draft_key`，請先保留最新一筆再加唯一約束。
 - 在 Vercel 設定 Supabase env，不要提交 `.env.local`。
 - 公開 demo 仍建議保留 `AI_PROVIDER=mock` 與 `ENABLE_PUBLIC_REAL_AI=false`。
 - 若要封閉測試真 AI，請搭配登入、rate limit、quota 與 workspace event log。

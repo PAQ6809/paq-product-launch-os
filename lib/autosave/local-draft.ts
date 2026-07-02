@@ -10,6 +10,7 @@ export type LocalProductDraft = {
   currentStep: string;
   completionPercent: number;
   autosavedAt: string;
+  source?: "local" | "cloud";
 };
 
 function canUseLocalStorage() {
@@ -61,7 +62,8 @@ export function loadLocalProductDraft() {
       formData: parsed.formData,
       currentStep: parsed.currentStep ?? "product-input",
       completionPercent: parsed.completionPercent ?? calculateDraftCompletion(parsed.formData),
-      autosavedAt: parsed.autosavedAt ?? new Date().toISOString()
+      autosavedAt: parsed.autosavedAt ?? new Date().toISOString(),
+      source: parsed.source === "cloud" ? "cloud" : "local"
     } satisfies LocalProductDraft;
   } catch {
     return null;
@@ -75,7 +77,8 @@ export function saveLocalProductDraft(formData: NewProductDraft, draftKey = crea
     formData,
     currentStep,
     completionPercent: calculateDraftCompletion(formData),
-    autosavedAt: new Date().toISOString()
+    autosavedAt: new Date().toISOString(),
+    source: "local"
   };
 
   if (canUseLocalStorage()) {
@@ -83,6 +86,18 @@ export function saveLocalProductDraft(formData: NewProductDraft, draftKey = crea
   }
 
   return draft;
+}
+
+export function storeLocalProductDraft(draft: LocalProductDraft) {
+  if (!canUseLocalStorage()) return;
+  window.localStorage.setItem(
+    STORAGE_KEY,
+    JSON.stringify({
+      ...draft,
+      version: STORAGE_VERSION,
+      source: draft.source ?? "local"
+    })
+  );
 }
 
 export function clearLocalProductDraft() {

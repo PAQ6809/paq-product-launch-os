@@ -157,7 +157,7 @@ export function ProductForm() {
       />
 
       <ResumeDraftBanner
-        draft={!resumeDismissed && autosave.status === "idle" ? autosave.localDraft : null}
+        draft={!resumeDismissed ? autosave.resumableDraft : null}
         onResume={handleResumeDraft}
         onDiscard={() => {
           setResumeDismissed(true);

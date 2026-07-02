@@ -12,12 +12,15 @@ type ResumeDraftBannerProps = {
 
 export function ResumeDraftBanner({ draft, onResume, onDiscard }: ResumeDraftBannerProps) {
   if (!draft) return null;
+  const isCloudDraft = draft.source === "cloud";
 
   return (
     <section className="rounded-md border border-amber-100 bg-amber-50 p-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-sm font-semibold text-ink">偵測到尚未完成的本機草稿</p>
+          <p className="text-sm font-semibold text-ink">
+            偵測到尚未完成的{isCloudDraft ? "雲端 workspace" : "本機"}草稿
+          </p>
           <p className="mt-1 text-sm leading-6 text-amber-800">
             完成度 {draft.completionPercent}% · 最後保存 {formatTime(draft.autosavedAt)}
           </p>

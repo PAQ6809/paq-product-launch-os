@@ -6,9 +6,10 @@ import {
   hasMeaningfulDraft,
   loadLocalProductDraft,
   saveLocalProductDraft,
+  storeLocalProductDraft,
   type LocalProductDraft
 } from "@/lib/autosave/local-draft";
-import { syncDraftToCloud } from "@/lib/autosave/draft-sync";
+import { loadLatestCloudDraft, syncDraftToCloud } from "@/lib/autosave/draft-sync";
 import type { NewProductDraft } from "@/types";
 
 export type AutosaveStatus = "idle" | "saving" | "saved-local" | "saved-cloud" | "offline" | "failed";
@@ -19,13 +20,27 @@ export function useAutosaveProductDraft(draft: NewProductDraft, options?: { debo
   const [status, setStatus] = useState<AutosaveStatus>("idle");
   const [message, setMessage] = useState("");
   const [localDraft, setLocalDraft] = useState<LocalProductDraft | null>(null);
+  const [resumableDraft, setResumableDraft] = useState<LocalProductDraft | null>(null);
   const draftKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
     const stored = loadLocalProductDraft();
-    if (!stored) return;
-    draftKeyRef.current = stored.draftKey;
-    setLocalDraft(stored);
+    if (stored) {
+      draftKeyRef.current = stored.draftKey;
+      setLocalDraft(stored);
+      setResumableDraft(stored);
+    }
+
+    void loadLatestCloudDraft().then((cloudDraft) => {
+      if (cancelled || !cloudDraft || !isNewerDraft(cloudDraft, stored)) return;
+      setResumableDraft(cloudDraft);
+      setMessage("Cloud draft available.");
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -43,6 +58,7 @@ export function useAutosaveProductDraft(draft: NewProductDraft, options?: { debo
     const saved = saveLocalProductDraft(nextDraft, draftKeyRef.current ?? undefined);
     draftKeyRef.current = saved.draftKey;
     setLocalDraft(saved);
+    setResumableDraft(null);
 
     const cloud = await syncDraftToCloud(saved);
     if (cloud.ok) {
@@ -57,10 +73,13 @@ export function useAutosaveProductDraft(draft: NewProductDraft, options?: { debo
   }
 
   function resumeDraft() {
-    const stored = loadLocalProductDraft();
+    const stored = resumableDraft ?? loadLocalProductDraft();
     if (!stored) return null;
+    const localCopy = { ...stored, source: "local" as const };
     draftKeyRef.current = stored.draftKey;
-    setLocalDraft(stored);
+    storeLocalProductDraft(localCopy);
+    setLocalDraft(localCopy);
+    setResumableDraft(null);
     return stored;
   }
 
@@ -68,6 +87,7 @@ export function useAutosaveProductDraft(draft: NewProductDraft, options?: { debo
     clearLocalProductDraft();
     draftKeyRef.current = null;
     setLocalDraft(null);
+    setResumableDraft(null);
     setStatus("idle");
     setMessage("");
   }
@@ -81,9 +101,15 @@ export function useAutosaveProductDraft(draft: NewProductDraft, options?: { debo
     status,
     message,
     localDraft,
+    resumableDraft,
     autosavedAt: localDraft?.autosavedAt ?? null,
     resumeDraft,
     discardDraft,
     saveNow
   };
+}
+
+function isNewerDraft(candidate: LocalProductDraft, current: LocalProductDraft | null) {
+  if (!current) return true;
+  return new Date(candidate.autosavedAt).getTime() > new Date(current.autosavedAt).getTime();
 }

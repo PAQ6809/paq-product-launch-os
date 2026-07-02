@@ -111,6 +111,47 @@ create index if not exists launch_reports_user_product_created_idx on public.lau
 create index if not exists report_translations_user_product_locale_idx on public.report_translations(user_id, product_id, target_locale);
 create index if not exists workspace_events_user_created_idx on public.workspace_events(user_id, created_at desc);
 
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'products_lifecycle_status_check'
+      and conrelid = 'public.products'::regclass
+  ) then
+    alter table public.products
+      add constraint products_lifecycle_status_check
+      check (lifecycle_status in ('idea', 'research', 'positioning', 'packaging', 'listing', 'marketing', 'launched', 'optimizing', 'archived'));
+  end if;
+end $$;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'product_drafts_user_draft_key_unique'
+      and conrelid = 'public.product_drafts'::regclass
+  ) then
+    alter table public.product_drafts
+      add constraint product_drafts_user_draft_key_unique unique (user_id, draft_key);
+  end if;
+end $$;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'product_drafts_completion_percent_check'
+      and conrelid = 'public.product_drafts'::regclass
+  ) then
+    alter table public.product_drafts
+      add constraint product_drafts_completion_percent_check
+      check (completion_percent is null or (completion_percent >= 0 and completion_percent <= 100));
+  end if;
+end $$;
+
 alter table public.products add column if not exists encrypted_confidential_data jsonb;
 alter table public.product_drafts add column if not exists encrypted_form_data jsonb;
 alter table public.launch_reports add column if not exists encrypted_report jsonb;

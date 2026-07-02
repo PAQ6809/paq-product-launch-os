@@ -58,9 +58,26 @@ Supabase 官方文件建議 server-side auth 要避免只信任 cookie session�
 登入使用：
 
 - Dashboard 與商品歷史頁會嘗試讀取 `/api/products`。
+- 商品輸入頁會嘗試讀取 `/api/drafts`，讓使用者重新登入或換裝置後可以恢復最新雲端草稿。
 - 商品送出時會先嘗試建立 Supabase product。
 - 報告產生後會嘗試保存到 `launch_reports`。
 - 本機資料仍保留，避免網路或 Supabase 設定問題造成資料遺失。
+
+## v0.4.7 Product Workspace Persistence
+
+v0.4.7 的目標是打通單一 SaaS 工作區資料流：
+
+```txt
+登入 → 建立產品 → autosave → 生成報告 → 保存報告 → dashboard 歷史產品 → 重新登入恢復
+```
+
+目前實作保持 local-first：
+
+- 未登入或 Supabase 未設定時，商品、報告與草稿仍使用 localStorage demo flow。
+- 登入後，`POST /api/products`、`POST /api/drafts`、`POST /api/reports` 會寫入 Supabase。
+- `GET /api/products` 讓 Dashboard / 商品歷史頁恢復雲端產品。
+- `GET /api/products/[id]` 與 `GET /api/reports?productId=` 讓商品詳情與報告頁在 localStorage 清空後仍能讀回資料。
+- `GET /api/drafts` 讓商品輸入頁顯示最新雲端草稿恢復提示。
 
 ## 安全注意事項
 

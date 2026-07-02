@@ -12,6 +12,29 @@ export async function importAnonymousDraft(draft: LocalProductDraft): Promise<Dr
   return postDraft("/api/anonymous-draft/import", { draft });
 }
 
+export async function loadLatestCloudDraft(): Promise<LocalProductDraft | null> {
+  try {
+    const response = await fetch("/api/drafts", { cache: "no-store" });
+    const data = await response.json().catch(() => null);
+
+    if (!response.ok || !isRecord(data) || !isCloudDraft(data.draft)) {
+      return null;
+    }
+
+    return {
+      version: 1,
+      draftKey: data.draft.draftKey,
+      formData: data.draft.formData,
+      currentStep: data.draft.currentStep ?? "product-input",
+      completionPercent: data.draft.completionPercent ?? 0,
+      autosavedAt: data.draft.autosavedAt,
+      source: "cloud"
+    };
+  } catch {
+    return null;
+  }
+}
+
 async function postDraft(url: string, payload: unknown): Promise<DraftSyncResult> {
   try {
     const response = await fetch(url, {
@@ -45,4 +68,36 @@ function readMessage(data: unknown) {
   }
 
   return null;
+}
+
+function isCloudDraft(value: unknown): value is {
+  draftKey: string;
+  formData: LocalProductDraft["formData"];
+  currentStep?: string | null;
+  completionPercent?: number | null;
+  autosavedAt: string;
+} {
+  if (!isRecord(value) || !isProductDraft(value.formData)) {
+    return false;
+  }
+
+  return typeof value.draftKey === "string" && typeof value.autosavedAt === "string";
+}
+
+function isProductDraft(value: unknown): value is LocalProductDraft["formData"] {
+  return (
+    isRecord(value) &&
+    typeof value.name === "string" &&
+    typeof value.category === "string" &&
+    typeof value.features === "string" &&
+    typeof value.cost === "string" &&
+    typeof value.expectedPrice === "string" &&
+    typeof value.targetAudience === "string" &&
+    typeof value.brandStyle === "string" &&
+    typeof value.salesChannels === "string"
+  );
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

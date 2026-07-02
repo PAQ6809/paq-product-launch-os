@@ -119,7 +119,7 @@ npm run build
 
 對創業比賽或老師可以這樣介紹：
 
-> PAQ Product Launch OS 把小品牌上市商品時分散的決策流程整理成一個 AI-assisted workflow。MVP 先以 demo flow 驗證價值：商品資料輸入後，系統透過 MockAIProvider 或 OpenAIProvider 產出可複製、可匯出、可人工審核的上市企劃報告；未來再接 Supabase 與平台整合。
+> PAQ Product Launch OS 把小品牌上市商品時分散的決策流程整理成一個 AI-assisted workflow。MVP 先以 demo flow 驗證價值：商品資料輸入後，系統透過 MockAIProvider / OpenAIProvider / NvidiaProvider 產出可複製、可匯出、可人工審核的上市企劃報告；登入後可把商品、草稿與報告保存到 Supabase workspace。
 
 ## 目前限制
 
@@ -127,7 +127,7 @@ npm run build
 - 目前不串 Shopify、蝦皮、Pinkoi、TikTok Shop 或任何平台 API。
 - 目前不保證 AI 圖片、包裝設計或文案可直接商用。
 - 食品、美妝、保健與醫療商品不得宣稱療效，正式使用前必須人工審核。
-- localStorage 只適合 demo；正式多人使用需改成 Supabase PostgreSQL 與 Storage。
+- localStorage 仍是匿名 demo fallback；登入後商品、草稿與報告可同步到 Supabase PostgreSQL。商品圖片仍是 mock / local preview，正式版再接 Supabase Storage 或 Cloudflare R2。
 - Visual smoke test 目前只覆蓋三個代表 viewport，320、375、430、1024、1280 仍需人工 QA。
 - 尚未導入 Storybook 或 Chromatic；元件數量與團隊規模增加後再評估。
 - Phase one 完整啟用 `zh-TW`、`en`、`ja`、`ko`、`ar`；其餘七種 locale 已保留 catalog，尚未對外啟用。
@@ -181,23 +181,27 @@ RATE_LIMIT_MAX_REQUESTS=5
 
 目前 rate limit 使用單一 server process 的記憶體，只適合本機與簡易 demo。正式上線應換成 Upstash Redis、Vercel Redis / KV 或 Supabase，並在登入後以 user / workspace 作為 quota key。完整設定與封閉測試流程見 `docs/api-safety.md`。
 
-## 未來接 Supabase 的方式
+## Supabase Workspace Persistence
 
-1. 依照 `docs/database-schema.md` 建立 Supabase PostgreSQL schema。
-2. 啟用 Row Level Security。
-3. 將 localStorage 狀態逐步搬到：
-   - `products`
-   - `launch_reports`
-   - `ai_generation_logs`
-   - `audit_logs`
-4. 商品圖片可改接 Supabase Storage 或 Cloudflare R2。
-5. Report section 的 review status 與 human_edited 狀態可寫入資料庫，作為正式審核紀錄。
+v0.4.7 keeps the demo local-first while adding the first real SaaS workspace path:
+
+```txt
+登入 → 建立產品 → autosave → 生成報告 → 保存報告 → dashboard 歷史產品 → 重新登入恢復
+```
+
+1. 依照 `docs/supabase-schema.sql` 建立 Supabase PostgreSQL schema。
+2. 確認 RLS 已啟用，且每張 workspace 表都用 `auth.uid()` 限制 owner rows。
+3. 設定 `NEXT_PUBLIC_SUPABASE_URL` 與 publishable / anon key。
+4. 登入後，`/api/products`、`/api/drafts`、`/api/reports` 會保存 workspace 資料。
+5. 未登入或 Supabase 未設定時，前端會回到 localStorage demo flow，不阻斷展示。
+6. 商品圖片可在下一階段改接 Supabase Storage 或 Cloudflare R2。
+7. Report section 的 review status 與 human_edited 狀態可在後續寫入資料庫，作為正式審核紀錄。
 
 ## Roadmap
 
 - v0.3：已加入 AI provider interface，可切換 MockAIProvider / OpenAIProvider。
-- v0.4：ai_generation_logs、provider telemetry 與更完整的錯誤追蹤。
-- v0.5：Supabase products、reports、audit logs、RLS。
+- v0.4：AI provider safety、Auth、Developer Console、Help Center 與 Product Workspace persistence。
+- v0.5：審核狀態 / audit log 持久化、Supabase Storage、付費與 quota。
 - v0.6：圖片上傳、素材管理與包裝 brief 工作流。
 - v0.7：平台模板強化、團隊審核與展示案例管理。
 
@@ -219,7 +223,7 @@ RATE_LIMIT_MAX_REQUESTS=5
 
 ## v0.4 Auth + Workspace + Autosave
 
-v0.4 adds Supabase Auth and cloud workspace persistence while keeping the public demo local-first. Anonymous users can still create products, generate mock/AI reports, copy/export, and use localStorage. Signed-in users can additionally sync products, drafts, and reports through server-side API routes.
+v0.4 adds Supabase Auth and cloud workspace persistence while keeping the public demo local-first. Anonymous users can still create products, generate mock/AI reports, copy/export, and use localStorage. Signed-in users can additionally sync products, drafts, and reports through server-side API routes. v0.4.7 also restores the latest cloud draft on the product input page when Supabase is configured.
 
 Key files:
 

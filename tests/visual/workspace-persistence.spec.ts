@@ -18,9 +18,22 @@ const cloudDraft = {
 };
 
 test("anonymous workspace API routes require auth without leaking data", async ({ request }) => {
-  for (const route of ["/api/products", "/api/drafts", "/api/reports?productId=demo-product"]) {
-    const response = await request.get(route);
-    expect(response.status(), `${route} should require auth`).toBe(401);
+  const cases = [
+    { method: "GET" as const, route: "/api/products" },
+    { method: "POST" as const, route: "/api/products", data: {} },
+    { method: "GET" as const, route: "/api/drafts" },
+    { method: "POST" as const, route: "/api/drafts", data: {} },
+    { method: "GET" as const, route: "/api/reports?productId=demo-product" },
+    { method: "POST" as const, route: "/api/reports", data: {} }
+  ];
+
+  for (const item of cases) {
+    const response =
+      item.method === "GET"
+        ? await request.get(item.route)
+        : await request.post(item.route, { data: item.data });
+
+    expect(response.status(), `${item.method} ${item.route} should require auth`).toBe(401);
     expect(response.headers()["cache-control"]).toContain("no-store");
 
     const body = await response.text();

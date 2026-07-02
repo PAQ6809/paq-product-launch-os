@@ -234,6 +234,8 @@ Key files:
 - `docs/auth-and-workspace.md`
 - `docs/persistence-and-autosave.md`
 - `docs/supabase-schema.sql`
+- `docs/supabase-live-smoke-test.md`
+- `docs/workspace-api-smoke-test.md`
 
 Supabase env:
 
@@ -245,6 +247,8 @@ SUPABASE_SERVICE_ROLE_KEY=
 ```
 
 The frontend only uses the publishable/anon key. Workspace API routes validate the Supabase session server-side and never trust a client-supplied `user_id`. If the user is anonymous or Supabase is not configured, the app falls back to local/demo persistence.
+
+Before merging workspace persistence changes to `main`, run the live checklist in `docs/supabase-live-smoke-test.md` and the API checklist in `docs/workspace-api-smoke-test.md`, including user A / user B isolation.
 
 ## v0.4.x Developer Role / Admin Safety
 

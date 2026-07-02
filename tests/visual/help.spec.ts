@@ -1,4 +1,33 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
+
+const forbiddenSecretText = /OPENAI_API_KEY|NVIDIA_API_KEY|SUPABASE_SERVICE_ROLE_KEY|ENCRYPTION_MASTER_KEY|nvapi-|sk-[A-Za-z0-9]/;
+const diagnosticsMetadataText = /AI_PROVIDER|HELP_AI_PROVIDER|OpenAI key configured|NVIDIA key configured|Public real AI|Public Help AI|Secret redaction|Rate limit status|Developer docs|i18n status/;
+
+async function isLoginRedirect(page: Page) {
+  const url = new URL(page.url());
+  return /\/(zh-TW|en|ja|ko|ar)\/login$/.test(url.pathname) && url.searchParams.has("redirectTo");
+}
+
+async function expectNoSecretLeak(page: Page) {
+  const text = await page.locator("body").innerText();
+  expect(text).not.toMatch(forbiddenSecretText);
+}
+
+async function expectNoDiagnosticsMetadata(page: Page) {
+  const text = await page.locator("body").innerText();
+  expect(text).not.toMatch(diagnosticsMetadataText);
+}
+
+async function expectNoHorizontalOverflow(page: Page) {
+  const layout = await page.evaluate(() => ({
+    bodyScrollWidth: document.body.scrollWidth,
+    clientWidth: document.documentElement.clientWidth,
+    htmlScrollWidth: document.documentElement.scrollWidth
+  }));
+
+  expect(layout.htmlScrollWidth).toBeLessThanOrEqual(layout.clientWidth + 1);
+  expect(layout.bodyScrollWidth).toBeLessThanOrEqual(layout.clientWidth + 1);
+}
 
 test("AI Help button appears on homepage", async ({ page }) => {
   await page.goto("/zh-TW");
@@ -154,6 +183,17 @@ test("mobile drawer has no horizontal overflow", async ({ page }) => {
 test("developer diagnostics routes do not render the public Help widget", async ({ page }) => {
   for (const route of ["/zh-TW/dev", "/zh-TW/dev/ai-diagnostics", "/zh-TW/dev/help-diagnostics"]) {
     await page.goto(route);
+
+    if (await isLoginRedirect(page)) {
+      await expect(page.getByText("Supabase Auth")).toBeVisible();
+      await expectNoDiagnosticsMetadata(page);
+      await expectNoSecretLeak(page);
+      await expectNoHorizontalOverflow(page);
+      continue;
+    }
+
     await expect(page.getByRole("button", { name: /AI Help/ })).toHaveCount(0);
+    await expectNoSecretLeak(page);
+    await expectNoHorizontalOverflow(page);
   }
 });

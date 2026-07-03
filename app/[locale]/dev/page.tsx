@@ -57,6 +57,7 @@ export default async function DeveloperConsolePage({ params }: { params: Promise
           <StatusRow label="AI_PROVIDER" value={diagnostics.providers.aiProvider} />
           <StatusRow label="HELP_AI_PROVIDER" value={diagnostics.providers.helpAIProvider} />
           <StatusRow label="Public real AI" value={diagnostics.providers.publicRealAIEnabled ? "true" : "false"} />
+          <StatusRow label="Real AI login required" value={diagnostics.providers.realAIRequireLogin ? "true" : "false"} />
           <StatusRow label="Public Help AI" value={diagnostics.providers.publicHelpAIEnabled ? "true" : "false"} />
           <StatusRow label="OpenAI key configured" value={diagnostics.providers.openAIKeyConfigured ? "true" : "false"} />
           <StatusRow label="NVIDIA key configured" value={diagnostics.providers.nvidiaKeyConfigured ? "true" : "false"} />
@@ -79,6 +80,17 @@ export default async function DeveloperConsolePage({ params }: { params: Promise
               ["enabled", diagnostics.rateLimit.generateReport.enabled ? "true" : "false"],
               ["window seconds", String(diagnostics.rateLimit.generateReport.windowSeconds)],
               ["max requests", String(diagnostics.rateLimit.generateReport.maxRequests)]
+            ]}
+          />
+          <StatusBlock
+            title="Real AI analysis"
+            rows={[
+              ["provider selected", diagnostics.realAIReadiness.providerSelected],
+              ["key configured", diagnostics.realAIReadiness.keyConfigured ? "true" : "false"],
+              ["login required", diagnostics.realAIReadiness.loginRequired ? "true" : "false"],
+              ["production forced mock", diagnostics.realAIReadiness.productionForcedMock ? "true" : "false"],
+              ["rate limit enabled", diagnostics.rateLimit.realAI.enabled ? "true" : "false"],
+              ["max requests", String(diagnostics.rateLimit.realAI.maxRequests)]
             ]}
           />
           <StatusBlock

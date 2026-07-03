@@ -148,7 +148,12 @@ test("security help questions return security scope without leaking secrets", as
 });
 
 test("Help rate limit returns 429", async ({ request }, testInfo) => {
-  const ip = `203.0.113.${testInfo.workerIndex + 80}`;
+  const projectOffset = testInfo.project.name.includes("mobile")
+    ? 80
+    : testInfo.project.name.includes("tablet")
+      ? 100
+      : 120;
+  const ip = `203.0.113.${projectOffset + testInfo.workerIndex}`;
   let lastStatus = 0;
 
   for (let index = 0; index < 21; index += 1) {

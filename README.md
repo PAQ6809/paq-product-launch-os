@@ -6,7 +6,7 @@ PAQ Product Launch OS 是一個商品上市 AI Demo：
 
 使用者輸入商品名稱、類別、功能、成本、預計售價、目標客群、品牌風格、銷售平台與商品圖片後，系統會整理商品定位、客群分析、競品差異、定價、包裝設計 brief、商品頁文案、SEO 關鍵字、社群貼文、短影音腳本、FAQ、客服話術、首月行銷計畫與銷售後優化建議。
 
-目前版本是可展示的 AI Demo。預設使用 MockAIProvider；若設定 `AI_PROVIDER=openai` 與 `OPENAI_API_KEY`，會透過 server-side API route 呼叫 OpenAIProvider。資料仍保存在 localStorage，方便 demo 與本機測試。
+目前版本是可展示的 SaaS MVP。預設使用 MockAIProvider；若登入且設定 `AI_PROVIDER=openai|nvidia` 與對應 server-side API key，會透過 `POST /api/generate-report` 產生真實商品分析。公開 production demo 預設強制 mock，避免 API key 被刷爆。
 
 ## 功能列表
 
@@ -17,7 +17,7 @@ PAQ Product Launch OS 是一個商品上市 AI Demo：
 - Human review：每個 section 支援 Copy、Edit、Approve、Reject；編輯後會標記 human_edited。
 - 匯出功能：Export Markdown、Export JSON、Copy Full Report、Shopify、蝦皮、Pinkoi 與社群貼文包模板。
 - Local persistence：demo 商品與使用者建立的商品會保存在 localStorage。
-- AI provider：可切換 MockAIProvider / OpenAIProvider，沒有 API key 或 OpenAI 回傳格式錯誤時自動 fallback。
+- AI provider：可切換 MockAIProvider / OpenAIProvider / NvidiaProvider，沒有登入、缺 API key、production safety 關閉或 JSON 驗證失敗時自動 fallback。
 - API safety：商品報告 API 具備 IP-based rate limit，公開 production demo 預設強制使用 MockAIProvider。
 - Developer role：`profiles.role` 控制 developer/admin 診斷頁存取，前端只顯示 server-side role 結果，不暴露 API key 或 secret。
 
@@ -123,7 +123,7 @@ npm run build
 
 ## 目前限制
 
-- 預設仍為 Mock Demo；只有設定 `AI_PROVIDER=openai` 與 `OPENAI_API_KEY` 才會呼叫 OpenAI API。
+- 預設仍為 Mock Demo；登入後且設定 `AI_PROVIDER=openai|nvidia`、對應 API key、`ENABLE_PUBLIC_REAL_AI=true` 或非公開安全環境時，才會呼叫真實 provider。
 - 目前不串 Shopify、蝦皮、Pinkoi、TikTok Shop 或任何平台 API。
 - 目前不保證 AI 圖片、包裝設計或文案可直接商用。
 - 食品、美妝、保健與醫療商品不得宣稱療效，正式使用前必須人工審核。
@@ -157,6 +157,10 @@ npm run build
 AI_PROVIDER=mock
 TRANSLATION_PROVIDER=mock
 ENABLE_PUBLIC_REAL_AI=false
+REAL_AI_REQUIRE_LOGIN=true
+REAL_AI_RATE_LIMIT_ENABLED=true
+REAL_AI_RATE_LIMIT_WINDOW_SECONDS=3600
+REAL_AI_RATE_LIMIT_MAX_REQUESTS=5
 ENABLE_DEV_DIAGNOSTICS=false
 RATE_LIMIT_ENABLED=true
 RATE_LIMIT_WINDOW_SECONDS=3600
@@ -177,9 +181,9 @@ RATE_LIMIT_WINDOW_SECONDS=3600
 RATE_LIMIT_MAX_REQUESTS=5
 ```
 
-公開 production demo 在 `ENABLE_PUBLIC_REAL_AI` 不是 `true` 時，會忽略 OpenAI / NVIDIA provider 設定並強制 fallback 到 MockAIProvider。超過 rate limit 時 API 回傳 HTTP 429 與可重試時間，不會啟動任何 provider 呼叫。
+公開 production demo 在 `ENABLE_PUBLIC_REAL_AI` 不是 `true` 時，會忽略 OpenAI / NVIDIA provider 設定並強制 fallback 到 MockAIProvider。`REAL_AI_REQUIRE_LOGIN=true` 時，未登入使用者也會 fallback 到 mock 並回傳 warning。超過 rate limit 時 API 回傳 HTTP 429 與可重試時間，不會啟動任何 provider 呼叫。
 
-目前 rate limit 使用單一 server process 的記憶體，只適合本機與簡易 demo。正式上線應換成 Upstash Redis、Vercel Redis / KV 或 Supabase，並在登入後以 user / workspace 作為 quota key。完整設定與封閉測試流程見 `docs/api-safety.md`。
+目前 rate limit 使用單一 server process 的記憶體，只適合本機與簡易 demo。正式上線應換成 Upstash Redis、Vercel Redis / KV 或 Supabase，並在登入後以 user / workspace 作為 quota key。完整設定與封閉測試流程見 `docs/api-safety.md`，真實商品分析設計見 `docs/real-ai-product-analysis.md`。
 
 ## Supabase Workspace Persistence
 
@@ -200,7 +204,7 @@ v0.4.7 keeps the demo local-first while adding the first real SaaS workspace pat
 ## Roadmap
 
 - v0.3：已加入 AI provider interface，可切換 MockAIProvider / OpenAIProvider。
-- v0.4：AI provider safety、Auth、Developer Console、Help Center 與 Product Workspace persistence。
+- v0.4：AI provider safety、Auth、Developer Console、Help Center、Product Workspace persistence 與 Real AI Product Analysis Engine。
 - v0.5：審核狀態 / audit log 持久化、Supabase Storage、付費與 quota。
 - v0.6：圖片上傳、素材管理與包裝 brief 工作流。
 - v0.7：平台模板強化、團隊審核與展示案例管理。

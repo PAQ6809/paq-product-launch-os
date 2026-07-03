@@ -2,10 +2,10 @@ function nonEmptyString() {
   return { type: "string", minLength: 1 } as const;
 }
 
-function stringArraySchema() {
+function stringArraySchema(minItems = 1) {
   return {
     type: "array",
-    minItems: 1,
+    minItems,
     items: nonEmptyString()
   } as const;
 }
@@ -19,10 +19,10 @@ function objectSchema(properties: Record<string, unknown>) {
   } as const;
 }
 
-function arrayOfObject(properties: Record<string, unknown>) {
+function arrayOfObject(properties: Record<string, unknown>, minItems = 1) {
   return {
     type: "array",
-    minItems: 1,
+    minItems,
     items: objectSchema(properties)
   } as const;
 }
@@ -51,8 +51,106 @@ export const LAUNCH_REPORT_REQUIRED_FIELDS = [
   "launchChecklist",
   "firstMonthMarketingPlan",
   "optimizationSuggestions",
-  "legalRiskNotes"
+  "legalRiskNotes",
+  "analysis",
+  "metadata"
 ] as const;
+
+const realAnalysisSchema = objectSchema({
+  executiveSummary: objectSchema({
+    summary: nonEmptyString(),
+    keyOpportunities: stringArraySchema(),
+    keyRisks: stringArraySchema(),
+    strongestAngle: nonEmptyString(),
+    weakestPoint: nonEmptyString()
+  }),
+  productDiagnosis: objectSchema({
+    insight: nonEmptyString(),
+    reasoning: nonEmptyString(),
+    assumptions: stringArraySchema(),
+    missingInformation: stringArraySchema(0),
+    recommendations: stringArraySchema()
+  }),
+  positioningAnalysis: objectSchema({
+    primaryPositioning: nonEmptyString(),
+    alternativePositioning: nonEmptyString(),
+    whyThisWorks: nonEmptyString(),
+    whoItIsNotFor: nonEmptyString(),
+    risks: stringArraySchema()
+  }),
+  targetAudience: objectSchema({
+    primarySegment: nonEmptyString(),
+    secondarySegment: nonEmptyString(),
+    painPoints: stringArraySchema(),
+    buyingTriggers: stringArraySchema(),
+    objections: stringArraySchema(),
+    messagingAngle: nonEmptyString()
+  }),
+  competitiveStrategy: objectSchema({
+    likelyCompetitors: stringArraySchema(),
+    differentiation: stringArraySchema(),
+    defensibility: nonEmptyString(),
+    comparisonTable: arrayOfObject({
+      factor: nonEmptyString(),
+      paqProduct: nonEmptyString(),
+      competitorPattern: nonEmptyString(),
+      opportunity: nonEmptyString()
+    }),
+    risks: stringArraySchema()
+  }),
+  pricingAnalysis: objectSchema({
+    suggestedPriceRange: nonEmptyString(),
+    reasoning: nonEmptyString(),
+    marginNotes: nonEmptyString(),
+    discountStrategy: nonEmptyString(),
+    riskNotes: stringArraySchema()
+  }),
+  packagingStrategy: objectSchema({
+    packagingConcept: nonEmptyString(),
+    visualDirection: nonEmptyString(),
+    copyDirection: nonEmptyString(),
+    unboxingMoment: nonEmptyString(),
+    costRisk: nonEmptyString()
+  }),
+  listingCopy: objectSchema({
+    title: nonEmptyString(),
+    subtitle: nonEmptyString(),
+    bullets: stringArraySchema(),
+    description: nonEmptyString(),
+    seoKeywords: stringArraySchema(),
+    complianceWarnings: stringArraySchema()
+  }),
+  marketingPlan: objectSchema({
+    first7Days: stringArraySchema(),
+    first30Days: stringArraySchema(),
+    channelStrategy: nonEmptyString(),
+    contentThemes: stringArraySchema(),
+    launchChecklist: stringArraySchema()
+  }),
+  socialContent: objectSchema({
+    posts: stringArraySchema(),
+    shortVideoScripts: stringArraySchema(),
+    creatorBrief: nonEmptyString()
+  }),
+  customerSupport: objectSchema({
+    faq: stringArraySchema(),
+    objectionHandling: stringArraySchema(),
+    replyScripts: stringArraySchema()
+  }),
+  legalRiskAssessment: objectSchema({
+    riskyClaims: stringArraySchema(),
+    saferAlternatives: stringArraySchema(),
+    requiredDisclaimers: stringArraySchema(),
+    reviewNeeded: { type: "boolean" }
+  }),
+  nextActions: arrayOfObject({
+    priority: { type: "string", enum: ["high", "medium", "low"] },
+    action: nonEmptyString(),
+    reason: nonEmptyString(),
+    expectedImpact: nonEmptyString(),
+    effort: nonEmptyString()
+  })
+});
 
 export const LAUNCH_REPORT_JSON_SCHEMA = {
   type: "object",
@@ -143,6 +241,18 @@ export const LAUNCH_REPORT_JSON_SCHEMA = {
       action: nonEmptyString(),
       why: nonEmptyString()
     }),
-    legalRiskNotes: stringArraySchema()
+    legalRiskNotes: stringArraySchema(),
+    analysis: realAnalysisSchema,
+    metadata: objectSchema({
+      provider: { type: "string", enum: ["mock", "openai", "nvidia"] },
+      model: nonEmptyString(),
+      isAiGenerated: { type: "boolean" },
+      isFallback: { type: "boolean" },
+      generatedAt: nonEmptyString(),
+      assumptionsUsed: stringArraySchema(),
+      confidenceLevel: { type: "string", enum: ["low", "medium", "high"] },
+      validationPassed: { type: "boolean" },
+      warnings: stringArraySchema(0)
+    })
   }
 } as const;

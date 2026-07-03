@@ -38,8 +38,11 @@ export default async function AIDiagnosticsPage({ params }: { params: Promise<{ 
           <dl className="mt-4 grid gap-3">
             <StatusRow label="AI_PROVIDER" value={diagnostics.providers.aiProvider} />
             <StatusRow label="Public real AI enabled" value={diagnostics.providers.publicRealAIEnabled ? "true" : "false"} />
+            <StatusRow label="Real AI login required" value={diagnostics.providers.realAIRequireLogin ? "true" : "false"} />
             <StatusRow label="OpenAI key configured" value={diagnostics.providers.openAIKeyConfigured ? "true" : "false"} />
             <StatusRow label="NVIDIA key configured" value={diagnostics.providers.nvidiaKeyConfigured ? "true" : "false"} />
+            <StatusRow label="Selected provider key ready" value={diagnostics.realAIReadiness.keyConfigured ? "true" : "false"} />
+            <StatusRow label="Production forced mock" value={diagnostics.realAIReadiness.productionForcedMock ? "true" : "false"} />
           </dl>
         </section>
 
@@ -50,9 +53,9 @@ export default async function AIDiagnosticsPage({ params }: { params: Promise<{ 
           </div>
           <dl className="mt-4 grid gap-3">
             <StatusRow label="Secret redaction" value={diagnostics.system.secretRedaction} />
-            <StatusRow label="Generate API rate limit" value={diagnostics.rateLimit.generateReport.enabled ? "enabled" : "disabled"} />
-            <StatusRow label="Window seconds" value={String(diagnostics.rateLimit.generateReport.windowSeconds)} />
-            <StatusRow label="Max requests" value={String(diagnostics.rateLimit.generateReport.maxRequests)} />
+            <StatusRow label="Real AI rate limit" value={diagnostics.rateLimit.realAI.enabled ? "enabled" : "disabled"} />
+            <StatusRow label="Window seconds" value={String(diagnostics.rateLimit.realAI.windowSeconds)} />
+            <StatusRow label="Max requests" value={String(diagnostics.rateLimit.realAI.maxRequests)} />
           </dl>
         </section>
       </div>

@@ -1,22 +1,27 @@
 import { NextResponse } from "next/server";
-import { getAIProvider } from "@/lib/ai/get-provider";
+import { getAIProvider, type SelectedAIProvider } from "@/lib/ai/get-provider";
 import { MockAIProvider } from "@/lib/ai/mock-provider";
 import { validateLaunchReportPayload } from "@/lib/ai/validators/launch-report-validator";
+import { getProduct } from "@/lib/db/products";
+import { saveLaunchReport } from "@/lib/db/reports";
+import { trackWorkspaceEvent } from "@/lib/db/workspace-events";
 import { getClientIp } from "@/lib/security/get-client-ip";
 import {
   checkRateLimit,
-  getRateLimitConfig,
+  getRealAIRateLimitConfig,
   type RateLimitDecision
 } from "@/lib/security/rate-limit";
+import { getCurrentUser } from "@/lib/supabase/server";
 import type { GenerateReportApiResponse } from "@/lib/ai/provider";
 import type { LaunchReportInput } from "@/types/report";
 
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
-  const rateLimitConfig = getRateLimitConfig();
+  const user = await getCurrentUser();
+  const rateLimitConfig = getRealAIRateLimitConfig();
   const clientIp = getClientIp(request);
-  const rateLimitKey = `generate-report:${clientIp === "unknown" ? "anonymous" : clientIp}`;
+  const rateLimitKey = `generate-report:${user?.id ?? (clientIp === "unknown" ? "anonymous" : clientIp)}`;
   const rateLimitDecision = checkRateLimit(rateLimitKey, rateLimitConfig);
   const rateLimit = {
     enabled: rateLimitConfig.enabled,
@@ -28,7 +33,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         error: "RATE_LIMIT_EXCEEDED",
-        message: "此 IP 已達商品報告生成上限，請於限制重置後再試。",
+        message: "Report generation rate limit exceeded. Please retry after the reset time.",
         retryAfterSeconds: rateLimitDecision.retryAfterSeconds,
         resetAt: rateLimitDecision.resetAt
       },
@@ -61,27 +66,55 @@ export async function POST(request: Request) {
 
   const configuredProvider = getAIProvider();
   const publicRealAIEnabled = isEnvironmentFlagEnabled(process.env.ENABLE_PUBLIC_REAL_AI);
+  const realAIRequireLogin = process.env.REAL_AI_REQUIRE_LOGIN !== "false";
+  const requestedRealProvider = configuredProvider.requestedProvider !== "mock";
+  const loginRequired = requestedRealProvider && realAIRequireLogin && !user;
   const forcedMockInProduction =
     process.env.NODE_ENV === "production" &&
     !publicRealAIEnabled &&
-    configuredProvider.requestedProvider !== "mock";
-  const selected = forcedMockInProduction
-    ? {
-        provider: new MockAIProvider(),
-        requestedProvider: configuredProvider.requestedProvider,
-        warning: "Public real AI is disabled in production. Forced fallback to MockAIProvider."
-      }
-    : configuredProvider;
+    requestedRealProvider;
+  const selected = selectProvider(configuredProvider, {
+    forcedMockInProduction,
+    loginRequired
+  });
+  const warnings = [selected.warning].filter(Boolean) as string[];
 
   try {
-    const generatedReport = await selected.provider.generateLaunchReport(inputResult.input);
-    const validation = validateLaunchReportPayload(generatedReport);
+    const generatedReport = await selected.provider.generateLaunchReport(inputResult.input, {
+      userId: user?.id,
+      productId: inputResult.productId,
+      model: selected.provider.model
+    });
+    const validation = validateLaunchReportPayload(generatedReport, { requireAnalysis: true });
 
     if (!validation.ok) {
       throw new Error(`Provider output validation failed: ${validation.errors.join("; ")}`);
     }
 
-    const report = validation.report;
+    const report = {
+      ...validation.report,
+      metadata: {
+        provider: selected.provider.name,
+        model: selected.provider.model,
+        isAiGenerated: true,
+        isFallback: Boolean(selected.warning),
+        generatedAt: validation.report.generatedAt,
+        assumptionsUsed: validation.report.metadata?.assumptionsUsed ?? validation.report.analysis?.productDiagnosis.assumptions ?? [],
+        confidenceLevel: validation.report.metadata?.confidenceLevel ?? "medium",
+        validationPassed: true,
+        warnings: Array.from(new Set([...(validation.report.metadata?.warnings ?? []), ...validation.warnings, ...warnings]))
+      }
+    };
+    const saveResult = await saveReportIfPossible(user?.id, inputResult.productId, report, {
+      provider: selected.provider.name,
+      model: selected.provider.model,
+      isFallback: Boolean(selected.warning),
+      validationPassed: true,
+      generatedAt: report.generatedAt
+    });
+
+    if (saveResult.warning) warnings.push(saveResult.warning);
+
     const response: GenerateReportApiResponse = {
       report,
       provider: selected.provider.name,
@@ -94,7 +127,11 @@ export async function POST(request: Request) {
       rateLimit,
       publicRealAIEnabled,
       forcedMockInProduction,
-      warning: selected.warning
+      loginRequired,
+      realAIEligible: !loginRequired && !forcedMockInProduction && selected.provider.name !== "mock",
+      savedReportId: saveResult.reportId,
+      warning: warnings.length > 0 ? Array.from(new Set(warnings)).join(" ") : undefined,
+      validationWarnings: validation.warnings
     };
 
     return NextResponse.json(response, {
@@ -109,7 +146,20 @@ export async function POST(request: Request) {
     ].join(" ");
 
     const response: GenerateReportApiResponse = {
-      report: fallbackReport,
+      report: {
+        ...fallbackReport,
+        metadata: {
+          provider: "mock",
+          model: mockProvider.model,
+          isAiGenerated: true,
+          isFallback: true,
+          generatedAt: fallbackReport.generatedAt,
+          assumptionsUsed: fallbackReport.metadata?.assumptionsUsed ?? fallbackReport.analysis?.productDiagnosis.assumptions ?? [],
+          confidenceLevel: fallbackReport.metadata?.confidenceLevel ?? "medium",
+          validationPassed: true,
+          warnings: Array.from(new Set([...(fallbackReport.metadata?.warnings ?? []), warning]))
+        }
+      },
       provider: "mock",
       requestedProvider: selected.requestedProvider,
       isFallback: true,
@@ -120,12 +170,64 @@ export async function POST(request: Request) {
       rateLimit,
       publicRealAIEnabled,
       forcedMockInProduction,
+      loginRequired,
+      realAIEligible: false,
       warning
     };
 
     return NextResponse.json(response, {
       headers: buildRateLimitHeaders(rateLimitDecision, rateLimitConfig.maxRequests)
     });
+  }
+}
+
+function selectProvider(
+  configuredProvider: SelectedAIProvider,
+  flags: { forcedMockInProduction: boolean; loginRequired: boolean }
+): SelectedAIProvider {
+  if (flags.forcedMockInProduction) {
+    return {
+      provider: new MockAIProvider(),
+      requestedProvider: configuredProvider.requestedProvider,
+      warning: "Public real AI is disabled in production. Forced fallback to MockAIProvider."
+    };
+  }
+
+  if (flags.loginRequired) {
+    return {
+      provider: new MockAIProvider(),
+      requestedProvider: configuredProvider.requestedProvider,
+      warning: "Login required for real AI analysis. Fallback to MockAIProvider."
+    };
+  }
+
+  return configuredProvider;
+}
+
+async function saveReportIfPossible(
+  userId: string | undefined,
+  productId: string,
+  report: GenerateReportApiResponse["report"],
+  metadata: Parameters<typeof saveLaunchReport>[3]
+) {
+  if (!userId || !productId) {
+    return { reportId: undefined, warning: undefined };
+  }
+
+  try {
+    const product = await getProduct(userId, productId);
+    if (!product) {
+      return { reportId: undefined, warning: "Report was generated but not saved because product ownership could not be verified." };
+    }
+
+    const saved = await saveLaunchReport(userId, productId, report, metadata);
+    await trackWorkspaceEvent(userId, productId, "report.generated", { provider: metadata.provider });
+    return { reportId: saved.id, warning: undefined };
+  } catch (error) {
+    return {
+      reportId: undefined,
+      warning: `Report was generated but cloud save failed: ${getSafePersistenceErrorMessage(error)}`
+    };
   }
 }
 
@@ -160,6 +262,14 @@ function getSafeProviderErrorMessage(error: unknown) {
   return "Provider generation failed. Enable development diagnostics locally for details.";
 }
 
+function getSafePersistenceErrorMessage(error: unknown) {
+  if (process.env.NODE_ENV !== "production" && error instanceof Error) {
+    return error.message;
+  }
+
+  return "Persistence failed.";
+}
+
 function providerLabel(provider: "mock" | "openai" | "nvidia") {
   if (provider === "openai") {
     return "OpenAIProvider";
@@ -176,6 +286,7 @@ type InputResult =
   | {
       ok: true;
       input: LaunchReportInput;
+      productId: string;
     }
   | {
       ok: false;
@@ -196,6 +307,7 @@ function normalizeLaunchReportInput(payload: unknown): InputResult {
   const brandStyle = readString(payload, "brandStyle");
   const imageUrl = readString(payload, "imageUrl", "/hero-workspace.png");
   const salesChannels = readStringArray(payload, "salesChannels");
+  const productId = readString(payload, "productId");
 
   const missing = [
     ["productName", productName],
@@ -227,7 +339,8 @@ function normalizeLaunchReportInput(payload: unknown): InputResult {
       brandStyle,
       salesChannels,
       imageUrl
-    }
+    },
+    productId
   };
 }
 
@@ -259,7 +372,7 @@ function readStringArray(record: Record<string, unknown>, field: string) {
 
   if (typeof value === "string") {
     return value
-      .split(/[,、\n]/)
+      .split(/[,，\n]/u)
       .map((item) => item.trim())
       .filter(Boolean);
   }

@@ -69,7 +69,10 @@ export class NvidiaProvider implements AIProvider {
             },
             {
               role: "user",
-              content: buildProductLaunchUserPrompt(input)
+              content: buildProductLaunchUserPrompt(input, {
+                provider: "nvidia",
+                model: options.model ?? this.model
+              })
             }
           ],
           temperature: this.temperature,
@@ -99,7 +102,12 @@ export class NvidiaProvider implements AIProvider {
       const payload = (await response.json()) as NvidiaResponsePayload;
       const rawText = extractStructuredPayload(payload);
       const report = parseJsonCandidate(rawText);
-      const normalized = normalizeGeneratedLaunchReport(report, input, { isMock: false });
+      const normalized = normalizeGeneratedLaunchReport(report, input, {
+        isMock: false,
+        provider: "nvidia",
+        model: options.model ?? this.model,
+        validationPassed: true
+      });
       assertNoForbiddenMarketingClaims(normalized);
       return normalized;
     } finally {
@@ -159,7 +167,7 @@ function parseJsonCandidate(rawText: string) {
 
   const errors: string[] = [];
   for (const candidate of Array.from(new Set(candidates))) {
-    const validation = parseLaunchReportJson(candidate);
+    const validation = parseLaunchReportJson(candidate, { requireAnalysis: true });
     if (validation.ok) {
       return validation.report;
     }

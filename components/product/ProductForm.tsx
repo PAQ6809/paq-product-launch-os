@@ -87,7 +87,10 @@ export function ProductForm() {
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify(input)
+        body: JSON.stringify({
+          ...input,
+          productId: cloudProduct ? product.id : undefined
+        })
       });
 
       if (!response.ok) {
@@ -108,8 +111,10 @@ export function ProductForm() {
         generatedAt: result.generatedAt
       });
       setGeneratedReport(result.report);
-      setGenerationMessage(result.warning ?? `已使用 ${result.provider} provider 產生報告。`);
-      await saveCloudReport(product.id, result);
+      setGenerationMessage(getGenerationStatusMessage(result));
+      if (!result.savedReportId) {
+        await saveCloudReport(product.id, result);
+      }
       autosave.discardDraft();
       router.push(`/products/${product.id}/report`);
     } catch (error) {
@@ -356,6 +361,12 @@ type CloudReportSaveInput = Pick<
   GenerateReportApiResponse,
   "report" | "provider" | "model" | "isFallback" | "validationPassed" | "generatedAt"
 >;
+
+function getGenerationStatusMessage(result: GenerateReportApiResponse) {
+  if (result.warning) return result.warning;
+  if (result.isFallback || result.provider === "mock") return "目前使用 Mock analysis / 示範分析。登入並設定 real AI provider 後可使用真實 AI 商品分析。";
+  return `Real AI analysis generated via ${result.provider} (${result.model}).`;
+}
 
 async function saveCloudReport(productId: string, result: CloudReportSaveInput) {
   try {

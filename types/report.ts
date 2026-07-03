@@ -79,6 +79,118 @@ export type OptimizationSuggestion = {
   why: string;
 };
 
+export type AnalysisConfidenceLevel = "low" | "medium" | "high";
+
+export type RealAINextAction = {
+  priority: "high" | "medium" | "low";
+  action: string;
+  reason: string;
+  expectedImpact: string;
+  effort: string;
+};
+
+export type RealAIProductAnalysis = {
+  executiveSummary: {
+    summary: string;
+    keyOpportunities: string[];
+    keyRisks: string[];
+    strongestAngle: string;
+    weakestPoint: string;
+  };
+  productDiagnosis: {
+    insight: string;
+    reasoning: string;
+    assumptions: string[];
+    missingInformation: string[];
+    recommendations: string[];
+  };
+  positioningAnalysis: {
+    primaryPositioning: string;
+    alternativePositioning: string;
+    whyThisWorks: string;
+    whoItIsNotFor: string;
+    risks: string[];
+  };
+  targetAudience: {
+    primarySegment: string;
+    secondarySegment: string;
+    painPoints: string[];
+    buyingTriggers: string[];
+    objections: string[];
+    messagingAngle: string;
+  };
+  competitiveStrategy: {
+    likelyCompetitors: string[];
+    differentiation: string[];
+    defensibility: string;
+    comparisonTable: Array<{
+      factor: string;
+      paqProduct: string;
+      competitorPattern: string;
+      opportunity: string;
+    }>;
+    risks: string[];
+  };
+  pricingAnalysis: {
+    suggestedPriceRange: string;
+    reasoning: string;
+    marginNotes: string;
+    discountStrategy: string;
+    riskNotes: string[];
+  };
+  packagingStrategy: {
+    packagingConcept: string;
+    visualDirection: string;
+    copyDirection: string;
+    unboxingMoment: string;
+    costRisk: string;
+  };
+  listingCopy: {
+    title: string;
+    subtitle: string;
+    bullets: string[];
+    description: string;
+    seoKeywords: string[];
+    complianceWarnings: string[];
+  };
+  marketingPlan: {
+    first7Days: string[];
+    first30Days: string[];
+    channelStrategy: string;
+    contentThemes: string[];
+    launchChecklist: string[];
+  };
+  socialContent: {
+    posts: string[];
+    shortVideoScripts: string[];
+    creatorBrief: string;
+  };
+  customerSupport: {
+    faq: string[];
+    objectionHandling: string[];
+    replyScripts: string[];
+  };
+  legalRiskAssessment: {
+    riskyClaims: string[];
+    saferAlternatives: string[];
+    requiredDisclaimers: string[];
+    reviewNeeded: boolean;
+  };
+  nextActions: RealAINextAction[];
+};
+
+export type LaunchReportMetadata = {
+  provider: "mock" | "openai" | "nvidia";
+  model: string;
+  isAiGenerated: boolean;
+  isFallback: boolean;
+  generatedAt: string;
+  assumptionsUsed: string[];
+  confidenceLevel: AnalysisConfidenceLevel;
+  validationPassed: boolean;
+  warnings?: string[];
+};
+
 export type LaunchReport = {
   productName: string;
   category: string;
@@ -104,6 +216,8 @@ export type LaunchReport = {
   firstMonthMarketingPlan: FirstMonthMarketingPlanItem[];
   optimizationSuggestions: OptimizationSuggestion[];
   legalRiskNotes: string[];
+  analysis?: RealAIProductAnalysis;
+  metadata?: LaunchReportMetadata;
 };
 
 export type TranslationProviderName = "mock" | "openai" | "nvidia";

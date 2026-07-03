@@ -3,13 +3,15 @@ import "server-only";
 import { readdir, readFile } from "fs/promises";
 import { join } from "path";
 import type { DeveloperAccess } from "@/lib/auth/roles";
-import { getHelpRateLimitConfig, getRateLimitConfig } from "@/lib/security/rate-limit";
+import { getHelpRateLimitConfig, getRateLimitConfig, getRealAIRateLimitConfig } from "@/lib/security/rate-limit";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 
 export type DeveloperDiagnostics = Awaited<ReturnType<typeof getDeveloperDiagnostics>>;
 
 export async function getDeveloperDiagnostics(access: DeveloperAccess) {
   const i18nStatus = await getI18nIntegrityStatus();
+  const aiProvider = process.env.AI_PROVIDER ?? "mock";
+  const publicRealAIEnabled = isEnabled(process.env.ENABLE_PUBLIC_REAL_AI);
 
   return {
     access: {
@@ -18,15 +20,32 @@ export async function getDeveloperDiagnostics(access: DeveloperAccess) {
       role: access.mode === "supabase" ? access.profile.role : "demo"
     },
     providers: {
-      aiProvider: process.env.AI_PROVIDER ?? "mock",
+      aiProvider,
       helpAIProvider: process.env.HELP_AI_PROVIDER ?? "mock",
-      publicRealAIEnabled: isEnabled(process.env.ENABLE_PUBLIC_REAL_AI),
+      publicRealAIEnabled,
       publicHelpAIEnabled: isEnabled(process.env.ENABLE_PUBLIC_HELP_AI),
+      realAIRequireLogin: process.env.REAL_AI_REQUIRE_LOGIN !== "false",
       openAIKeyConfigured: hasValue(process.env.OPENAI_API_KEY),
       nvidiaKeyConfigured: hasValue(process.env.NVIDIA_API_KEY)
     },
+    realAIReadiness: {
+      providerSelected: aiProvider,
+      keyConfigured:
+        aiProvider === "openai"
+          ? hasValue(process.env.OPENAI_API_KEY)
+          : aiProvider === "nvidia"
+            ? hasValue(process.env.NVIDIA_API_KEY)
+            : true,
+      loginRequired: process.env.REAL_AI_REQUIRE_LOGIN !== "false",
+      publicRealAIEnabled,
+      productionForcedMock:
+        process.env.NODE_ENV === "production" &&
+        !publicRealAIEnabled &&
+        (aiProvider === "openai" || aiProvider === "nvidia")
+    },
     rateLimit: {
       generateReport: getRateLimitConfig(),
+      realAI: getRealAIRateLimitConfig(),
       helpChat: getHelpRateLimitConfig()
     },
     system: {
@@ -60,7 +79,7 @@ async function getI18nIntegrityStatus() {
         if (!value.trim()) {
           issues.push(`${file}: empty ${key}`);
         }
-        if (/\?\?|�/.test(value)) {
+        if (/\?\?|�/u.test(value)) {
           issues.push(`${file}: broken text ${key}`);
         }
       }

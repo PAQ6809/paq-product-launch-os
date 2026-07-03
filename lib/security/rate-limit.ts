@@ -38,6 +38,24 @@ export function getRateLimitConfig(
   };
 }
 
+export function getRealAIRateLimitConfig(
+  environment: Record<string, string | undefined> = process.env
+): RateLimitConfig {
+  return {
+    enabled: (environment.REAL_AI_RATE_LIMIT_ENABLED ?? environment.RATE_LIMIT_ENABLED) !== "false",
+    windowSeconds: readPositiveInteger(
+      environment.REAL_AI_RATE_LIMIT_WINDOW_SECONDS ?? environment.RATE_LIMIT_WINDOW_SECONDS,
+      3_600,
+      604_800
+    ),
+    maxRequests: readPositiveInteger(
+      environment.REAL_AI_RATE_LIMIT_MAX_REQUESTS ?? environment.RATE_LIMIT_MAX_REQUESTS,
+      5,
+      10_000
+    )
+  };
+}
+
 export function getHelpRateLimitConfig(
   environment: Record<string, string | undefined> = process.env
 ): RateLimitConfig {

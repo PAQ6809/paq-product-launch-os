@@ -68,7 +68,10 @@ export class OpenAIProvider implements AIProvider {
             },
             {
               role: "user",
-              content: buildProductLaunchUserPrompt(input)
+              content: buildProductLaunchUserPrompt(input, {
+                provider: "openai",
+                model: options.model ?? this.model
+              })
             }
           ],
           text: {
@@ -90,13 +93,19 @@ export class OpenAIProvider implements AIProvider {
 
       const payload = (await response.json()) as OpenAIResponsePayload;
       const rawText = extractOutputText(payload);
-      const validation = parseLaunchReportJson(rawText);
+      const validation = parseLaunchReportJson(rawText, { requireAnalysis: true });
 
       if (!validation.ok) {
         throw new Error(`OpenAI JSON validation failed: ${validation.errors.join("; ")}`);
       }
 
-      const report = normalizeGeneratedLaunchReport(validation.report, input, { isMock: false });
+      const report = normalizeGeneratedLaunchReport(validation.report, input, {
+        isMock: false,
+        provider: "openai",
+        model: options.model ?? this.model,
+        validationPassed: true,
+        warnings: validation.warnings
+      });
       assertNoForbiddenMarketingClaims(report);
       return report;
     } finally {

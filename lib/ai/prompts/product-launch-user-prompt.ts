@@ -2,56 +2,62 @@ import { LAUNCH_REPORT_JSON_SCHEMA } from "@/lib/ai/schemas/launch-report-json-s
 import type { LaunchReportInput } from "@/types/report";
 
 export const LAUNCH_REPORT_JSON_SCHEMA_INSTRUCTION = `
-請輸出一個 LaunchReport JSON object，欄位必須完整包含：
-- productName, category, generatedAt, isMock
-- positioning, targetAudienceAnalysis, keySellingPoints
-- competitorAnalysis, pricingStrategy, packagingBrief
-- frontPackagingCopy, backPackagingCopy
-- productTitle, shortDescription, longDescription
-- seoKeywords, socialPosts, videoScripts
-- faqs, customerServiceScripts, launchChecklist
-- firstMonthMarketingPlan, optimizationSuggestions, legalRiskNotes
-
-所有字串不得為空，所有陣列不得為空。socialPosts 至少包含 IG、Threads、TikTok 三種平台。generatedAt 使用 ISO-8601 字串。isMock 必須為 false。
+請輸出完整 LaunchReport JSON，必須包含 legacy 欄位與 v0.4.8 analysis/metadata 欄位：
+- legacy: productName, category, generatedAt, isMock, positioning, targetAudienceAnalysis, keySellingPoints, competitorAnalysis, pricingStrategy, packagingBrief, frontPackagingCopy, backPackagingCopy, productTitle, shortDescription, longDescription, seoKeywords, socialPosts, videoScripts, faqs, customerServiceScripts, launchChecklist, firstMonthMarketingPlan, optimizationSuggestions, legalRiskNotes
+- analysis: executiveSummary, productDiagnosis, positioningAnalysis, targetAudience, competitiveStrategy, pricingAnalysis, packagingStrategy, listingCopy, marketingPlan, socialContent, customerSupport, legalRiskAssessment, nextActions
+- metadata: provider, model, isAiGenerated, isFallback, generatedAt, assumptionsUsed, confidenceLevel, validationPassed, warnings
 `.trim();
 
 type ProductLaunchPromptOptions = {
   includeJsonSchema?: boolean;
+  provider?: "openai" | "nvidia";
+  model?: string;
 };
 
 export function buildProductLaunchUserPrompt(
   input: LaunchReportInput,
   options: ProductLaunchPromptOptions = {}
 ) {
+  const channels = input.salesChannels.length > 0 ? input.salesChannels.join(", ") : "未提供";
+  const missing = [
+    ["商品功能", input.features],
+    ["目標客群", input.targetAudience],
+    ["品牌風格", input.brandStyle],
+    ["銷售通路", channels === "未提供" ? "" : channels]
+  ]
+    .filter(([, value]) => !String(value).trim())
+    .map(([label]) => label);
   const schemaBlock = options.includeJsonSchema
-    ? `\n請嚴格遵守以下 JSON Schema：\n${JSON.stringify(LAUNCH_REPORT_JSON_SCHEMA)}`
+    ? `\nJSON Schema:\n${JSON.stringify(LAUNCH_REPORT_JSON_SCHEMA)}`
     : "";
 
   return `
-請根據以下商品資料，產生一份 PAQ Product Launch OS 商品上市企劃報告。
+請為以下商品產出 PAQ Product Launch OS 商品上市企劃報告。
 
-商品名稱：${input.productName}
-商品類別：${input.category}
-商品功能：${input.features}
-商品成本：${input.cost}
-預計售價：${input.targetPrice}
-目標客群：${input.targetAudience}
-品牌風格：${input.brandStyle}
-銷售平台：${input.salesChannels.join("、") || "未設定"}
-商品圖片 URL：${input.imageUrl || "未提供"}
+商品資料：
+- 商品名稱：${input.productName}
+- 商品類別：${input.category}
+- 商品功能 / 特色：${input.features || "未提供"}
+- 成本：${input.cost}
+- 預計售價：${input.targetPrice}
+- 目標客群：${input.targetAudience || "未提供"}
+- 品牌風格：${input.brandStyle || "未提供"}
+- 銷售通路：${channels}
+- 商品圖片 URL：${input.imageUrl || "未提供"}
+- 目前缺少的欄位：${missing.length > 0 ? missing.join(", ") : "無明顯缺漏"}
 
-輸出要求：
-1. 內容要像可以交給店家討論的企劃書，不要太空泛。
-2. 請根據商品類別、成本、售價、目標客群、品牌風格與銷售平台調整語氣與策略。
-3. 競品分析請使用通用競品類型，不要捏造真實市場數據。
-4. 社群文案需包含 IG、Threads、TikTok。
-5. 短影音腳本需可直接交給影音或社群人員改稿。
-6. FAQ 與客服話術需回答常見購買疑慮。
-7. 若商品涉及食品、美妝、保健、醫療、香氛或可能接觸身體，請在 legalRiskNotes 加入人工審核與法規提醒。
-8. 不得使用「保證療效」「治療」「改善疾病」「保證銷售」「月收保證」或同義英文宣稱。
-9. 只輸出 JSON object，不得輸出 Markdown code block、前言或結語。
-10. 內容保持精簡可執行：核心賣點 3-5 項、競品類型 3 項、社群貼文 3 項、短影音 1-2 支、FAQ 3 項、客服話術 3 項、上架清單 6 項、首月計畫 4 週、優化建議 3 項、法規提醒 4 項。
+分析要求：
+1. 不要套模板。請把每個判斷連回商品名稱、類別、售價、成本、客群、功能與通路。
+2. 必須列出 assumptionsUsed 與 missingInformation。
+3. competitorAnalysis / competitiveStrategy 可以使用「可能競品類型」與「市場常見競品假設」，但不可宣稱已做真實網路爬取。
+4. pricingStrategy / pricingAnalysis 必須引用成本、售價與毛利邏輯。
+5. listingCopy、socialPosts、videoScripts、FAQ、customerServiceScripts 必須能直接給店家討論或複製。
+6. nextActions 至少 4 項，需標示 priority、reason、expectedImpact、effort。
+7. 請避免保證銷售、療效、治療、改善疾病、100% 有效等高風險宣稱。
+8. 請輸出繁體中文 JSON，不要輸出 markdown code block。
+9. metadata.provider 請填 ${options.provider ?? "openai"}，metadata.model 請填 ${options.model ?? "configured-model"}，metadata.isAiGenerated=true，metadata.isFallback=false。
 
-${LAUNCH_REPORT_JSON_SCHEMA_INSTRUCTION}${schemaBlock}
+${LAUNCH_REPORT_JSON_SCHEMA_INSTRUCTION}
+${schemaBlock}
 `.trim();
 }

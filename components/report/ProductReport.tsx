@@ -661,6 +661,8 @@ export function ProductReport({ product, requestedProductId }: ProductReportProp
         ? "NvidiaProvider"
         : "MockAIProvider";
   const modeLabel = initialReport.isMock ? "Demo Mode · 使用範例資料展示流程" : `AI generated · ${providerLabel}`;
+  const reportMetadata = initialReport.metadata;
+  const assumptionsUsed = reportMetadata?.assumptionsUsed ?? [];
 
   function handleSave(sectionId: string, newContent: string) {
     const target = sections.find((section) => section.id === sectionId);
@@ -899,6 +901,22 @@ export function ProductReport({ product, requestedProductId }: ProductReportProp
               <p className="mt-4 whitespace-pre-wrap break-words rounded-md border border-amber-100 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-700">
                 {storedReport.warning}
               </p>
+            ) : null}
+            {reportMetadata ? (
+              <div className="mt-4 grid gap-3 rounded-md border border-line bg-mist/40 p-4 text-sm text-graphite/78 md:grid-cols-2 xl:grid-cols-4">
+                <div>
+                  <div className="font-semibold text-ink">Provider</div>
+                  <div>{reportMetadata.provider} · {reportMetadata.model}</div>
+                </div>
+                <div>
+                  <div className="font-semibold text-ink">Validation</div>
+                  <div>{reportMetadata.validationPassed ? "Passed" : "Needs review"} · {reportMetadata.confidenceLevel} confidence</div>
+                </div>
+                <div className="md:col-span-2">
+                  <div className="font-semibold text-ink">Assumptions used</div>
+                  <div className="line-clamp-2">{assumptionsUsed.length > 0 ? assumptionsUsed.join("；") : "No assumptions recorded."}</div>
+                </div>
+              </div>
             ) : null}
         </div>
         <div className="mt-5 flex flex-wrap gap-2">

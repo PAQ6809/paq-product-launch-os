@@ -1,27 +1,46 @@
 import type { LaunchReport } from "@/types/report";
 
 const forbiddenMarketingClaimPatterns = [
-  { label: "保證療效", pattern: /保證療效/u },
+  { label: "保證", pattern: /保證/u },
+  { label: "100%", pattern: /100\s*%/u },
+  { label: "最有效", pattern: /最有效/u },
   { label: "治療", pattern: /治療/u },
+  { label: "療效", pattern: /療效/u },
   { label: "改善疾病", pattern: /改善疾病/u },
-  { label: "保證銷售", pattern: /保證銷售/u },
-  { label: "月收保證", pattern: /月收保證/u },
+  { label: "無風險", pattern: /無風險/u },
+  { label: "必賺", pattern: /必賺/u },
+  { label: "guaranteed", pattern: /\bguaranteed\b/iu },
   { label: "guaranteed sales", pattern: /\bguaranteed sales\b/iu },
   { label: "cure", pattern: /\bcure\b/iu },
   { label: "treat disease", pattern: /\btreat disease\b/iu },
-  { label: "clinically proven", pattern: /\bclinically proven\b/iu }
+  { label: "clinically proven", pattern: /\bclinically proven\b/iu },
+  { label: "risk-free", pattern: /\brisk[- ]free\b/iu }
 ] as const;
+
+const genericTemplatePatterns = [
+  /根據您的產品/u,
+  /您的商品/u,
+  /這款產品/u,
+  /依照商品特色/u,
+  /目標客群需要/u
+] as const;
+
+type ValidationOptions = {
+  requireAnalysis?: boolean;
+};
 
 type ValidationResult =
   | {
       ok: true;
       report: LaunchReport;
       errors: [];
+      warnings: string[];
     }
   | {
       ok: false;
       report: null;
       errors: string[];
+      warnings: string[];
     };
 
 const requiredStringFields = [
@@ -63,11 +82,11 @@ function hasNumber(record: Record<string, unknown>, field: string) {
   return typeof record[field] === "number" && Number.isFinite(record[field]);
 }
 
-function validateStringArray(record: Record<string, unknown>, field: string, errors: string[]) {
+function validateStringArray(record: Record<string, unknown>, field: string, errors: string[], minItems = 1) {
   const value = record[field];
 
-  if (!Array.isArray(value) || value.length === 0) {
-    errors.push(`${field} must be a non-empty array.`);
+  if (!Array.isArray(value) || value.length < minItems) {
+    errors.push(`${field} must be an array with at least ${minItems} item(s).`);
     return;
   }
 
@@ -82,12 +101,13 @@ function validateObjectArray(
   record: Record<string, unknown>,
   field: string,
   fields: string[],
-  errors: string[]
+  errors: string[],
+  minItems = 1
 ) {
   const value = record[field];
 
-  if (!Array.isArray(value) || value.length === 0) {
-    errors.push(`${field} must be a non-empty array.`);
+  if (!Array.isArray(value) || value.length < minItems) {
+    errors.push(`${field} must be an array with at least ${minItems} item(s).`);
     return;
   }
 
@@ -225,14 +245,87 @@ function validatePackagingBrief(record: Record<string, unknown>, errors: string[
   validateStringArray(packagingBrief, "complianceNotes", errors);
 }
 
-export function validateLaunchReportPayload(payload: unknown): ValidationResult {
+function validateAnalysis(record: Record<string, unknown>, errors: string[], warnings: string[]) {
+  const analysis = record.analysis;
+  if (!isRecord(analysis)) {
+    errors.push("analysis must be an object.");
+    return;
+  }
+
+  const executiveSummary = analysis.executiveSummary;
+  if (!isRecord(executiveSummary) || !hasNonEmptyString(executiveSummary, "summary")) {
+    errors.push("analysis.executiveSummary.summary must be a non-empty string.");
+  }
+
+  const productDiagnosis = analysis.productDiagnosis;
+  if (!isRecord(productDiagnosis)) {
+    errors.push("analysis.productDiagnosis must be an object.");
+  } else {
+    validateStringArray(productDiagnosis, "assumptions", errors);
+    validateStringArray(productDiagnosis, "missingInformation", errors, 0);
+    validateStringArray(productDiagnosis, "recommendations", errors);
+    if (Array.isArray(productDiagnosis.missingInformation) && productDiagnosis.missingInformation.length >= 5) {
+      warnings.push("Analysis has many missingInformation items; confidence should remain low or medium.");
+    }
+  }
+
+  const nextActions = analysis.nextActions;
+  if (!Array.isArray(nextActions) || nextActions.length === 0) {
+    errors.push("analysis.nextActions must be a non-empty array.");
+  }
+
+  const legalRiskAssessment = analysis.legalRiskAssessment;
+  if (!isRecord(legalRiskAssessment)) {
+    errors.push("analysis.legalRiskAssessment must be an object.");
+  } else {
+    validateStringArray(legalRiskAssessment, "riskyClaims", errors);
+    validateStringArray(legalRiskAssessment, "saferAlternatives", errors);
+    validateStringArray(legalRiskAssessment, "requiredDisclaimers", errors);
+    if (typeof legalRiskAssessment.reviewNeeded !== "boolean") {
+      errors.push("analysis.legalRiskAssessment.reviewNeeded must be a boolean.");
+    }
+  }
+}
+
+function validateMetadata(record: Record<string, unknown>, errors: string[]) {
+  const metadata = record.metadata;
+  if (!isRecord(metadata)) {
+    errors.push("metadata must be an object.");
+    return;
+  }
+
+  if (!["mock", "openai", "nvidia"].includes(String(metadata.provider))) {
+    errors.push("metadata.provider must be mock, openai, or nvidia.");
+  }
+
+  ["model", "generatedAt", "confidenceLevel"].forEach((field) => {
+    if (!hasNonEmptyString(metadata, field)) {
+      errors.push(`metadata.${field} must be a non-empty string.`);
+    }
+  });
+
+  ["isAiGenerated", "isFallback", "validationPassed"].forEach((field) => {
+    if (typeof metadata[field] !== "boolean") {
+      errors.push(`metadata.${field} must be a boolean.`);
+    }
+  });
+
+  validateStringArray(metadata, "assumptionsUsed", errors);
+}
+
+export function validateLaunchReportPayload(
+  payload: unknown,
+  options: ValidationOptions = {}
+): ValidationResult {
   const errors: string[] = [];
+  const warnings: string[] = [];
 
   if (!isRecord(payload)) {
     return {
       ok: false,
       report: null,
-      errors: ["Launch report payload must be an object."]
+      errors: ["Launch report payload must be an object."],
+      warnings
     };
   }
 
@@ -266,40 +359,51 @@ export function validateLaunchReportPayload(payload: unknown): ValidationResult 
   validatePricingStrategy(payload, errors);
   validatePackagingBrief(payload, errors);
 
-  if (errors.length === 0) {
-    const matchedTerms = findForbiddenMarketingClaims(payload as LaunchReport);
-    matchedTerms.forEach((term) => errors.push(`Forbidden marketing claim found: ${term}.`));
+  if (options.requireAnalysis) {
+    validateAnalysis(payload, errors, warnings);
+    validateMetadata(payload, errors);
+  } else if (isRecord(payload.analysis)) {
+    validateAnalysis(payload, errors, warnings);
   }
+
+  const matchedTerms = findForbiddenMarketingClaims(payload as LaunchReport);
+  matchedTerms.forEach((term) => errors.push(`Forbidden outward-facing marketing claim found: ${term}.`));
+
+  const templateWarning = getTemplateLikeWarning(payload as LaunchReport);
+  if (templateWarning) warnings.push(templateWarning);
 
   if (errors.length > 0) {
     return {
       ok: false,
       report: null,
-      errors: Array.from(new Set(errors))
+      errors: Array.from(new Set(errors)),
+      warnings: Array.from(new Set(warnings))
     };
   }
 
   return {
     ok: true,
     report: payload as LaunchReport,
-    errors: []
+    errors: [],
+    warnings: Array.from(new Set(warnings))
   };
 }
 
-export function parseLaunchReportJson(rawText: string): ValidationResult {
+export function parseLaunchReportJson(rawText: string, options: ValidationOptions = {}): ValidationResult {
   try {
-    return validateLaunchReportPayload(JSON.parse(rawText));
+    return validateLaunchReportPayload(JSON.parse(rawText), options);
   } catch (error) {
     return {
       ok: false,
       report: null,
-      errors: [error instanceof Error ? error.message : "Invalid JSON response."]
+      errors: [error instanceof Error ? error.message : "Invalid JSON response."],
+      warnings: []
     };
   }
 }
 
 export function assertValidLaunchReport(payload: unknown): LaunchReport {
-  const result = validateLaunchReportPayload(payload);
+  const result = validateLaunchReportPayload(payload, { requireAnalysis: true });
 
   if (!result.ok) {
     throw new Error(`Invalid launch report payload: ${result.errors.join("; ")}`);
@@ -335,4 +439,24 @@ function findForbiddenMarketingClaims(report: LaunchReport) {
   return forbiddenMarketingClaimPatterns
     .filter(({ pattern }) => pattern.test(claimSensitiveText))
     .map(({ label }) => label);
+}
+
+function getTemplateLikeWarning(report: LaunchReport) {
+  const text = [
+    report.positioning,
+    report.targetAudienceAnalysis,
+    report.longDescription,
+    report.analysis?.executiveSummary.summary ?? "",
+    report.analysis?.productDiagnosis.reasoning ?? ""
+  ].join("\n");
+  const genericHits = genericTemplatePatterns.filter((pattern) => pattern.test(text)).length;
+  const concreteTerms = [report.productName, report.category, ...report.keySellingPoints.slice(0, 2)]
+    .filter(Boolean)
+    .filter((term) => text.includes(term.slice(0, Math.min(term.length, 8))));
+
+  if (genericHits >= 2 && concreteTerms.length < 2) {
+    return "Output appears template-like and may need stronger product-specific analysis.";
+  }
+
+  return null;
 }

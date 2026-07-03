@@ -38,6 +38,10 @@ export type GenerateReportApiResponse = {
   rateLimit: RateLimitMetadata;
   publicRealAIEnabled: boolean;
   forcedMockInProduction: boolean;
+  loginRequired: boolean;
+  realAIEligible: boolean;
+  savedReportId?: string;
   warning?: string;
   validationErrors?: string[];
+  validationWarnings?: string[];
 };

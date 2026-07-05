@@ -11,7 +11,8 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { Link, useRouter } from "@/i18n/navigation";
 
 function safeRedirect(value: string | null) {
-  return value?.startsWith("/") ? value : "/dashboard";
+  if (!value?.startsWith("/")) return "/dashboard";
+  return value.replace(/^\/(?:zh-TW|en|ja|ko|ar)(?=\/|$)/, "") || "/dashboard";
 }
 
 export function LoginForm() {

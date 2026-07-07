@@ -1,5 +1,33 @@
 # PAQ Product Launch OS
 
+## Current Version Status
+
+- v0.4.8 Real AI Product Analysis Engine is completed and merged to `main`.
+- NVIDIA logged-in real AI smoke has passed locally with report persistence to Supabase `launch_reports`.
+- v0.4.9 Production Readiness / Vercel Deployment Hardening adds deploy policy, Vercel env guidance, Supabase Auth production setup, security headers, and a production smoke checklist.
+
+Production readiness docs:
+
+- `docs/production-env-policy.md`
+- `docs/vercel-deployment.md`
+- `docs/supabase-auth-production.md`
+- `docs/security-headers.md`
+- `docs/production-smoke-checklist.md`
+
+Production defaults:
+
+```env
+AI_PROVIDER=nvidia
+ENABLE_PUBLIC_REAL_AI=false
+REAL_AI_REQUIRE_LOGIN=true
+HELP_AI_PROVIDER=mock
+ENABLE_PUBLIC_HELP_AI=false
+ENABLE_DEV_DIAGNOSTICS=false
+ENABLE_DEV_DIAGNOSTICS_IN_PRODUCTION=false
+```
+
+Only `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` may be public. Provider keys, Supabase service role keys, and encryption keys must stay server-side only.
+
 PAQ Product Launch OS 是一個商品上市 AI Demo：
 
 > 上傳商品資料，AI 產出完整商品上市企劃書。

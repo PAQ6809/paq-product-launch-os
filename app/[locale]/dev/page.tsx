@@ -51,6 +51,9 @@ export default async function DeveloperConsolePage({ params }: { params: Promise
           <StatusRow label="Email" value={diagnostics.access.email ?? "Demo only"} />
           <StatusRow label="Role" value={diagnostics.access.role} />
           <StatusRow label="Supabase configured" value={diagnostics.system.supabaseConfigured ? "true" : "false"} />
+          <StatusRow label="Supabase URL configured" value={diagnostics.system.supabaseUrlConfigured ? "true" : "false"} />
+          <StatusRow label="Supabase anon configured" value={diagnostics.system.supabaseAnonKeyConfigured ? "true" : "false"} />
+          <StatusRow label="Service role configured" value={diagnostics.system.serviceRoleConfigured ? "true" : "false"} />
         </SafeStatusCard>
 
         <SafeStatusCard icon={<Activity size={18} aria-hidden="true" />} title="Providers">
@@ -67,6 +70,12 @@ export default async function DeveloperConsolePage({ params }: { params: Promise
           <StatusRow label="i18n status" value={diagnostics.i18n.ok ? "passing" : "needs review"} />
           <StatusRow label="Locale files" value={String(diagnostics.i18n.localeFiles)} />
           <StatusRow label="i18n issues" value={String(diagnostics.i18n.issueCount)} />
+          <StatusRow label="NODE_ENV" value={diagnostics.system.nodeEnv} />
+          <StatusRow label="Dev diagnostics" value={diagnostics.system.devDiagnosticsEnabled ? "true" : "false"} />
+          <StatusRow
+            label="Diagnostics in production"
+            value={diagnostics.system.devDiagnosticsInProductionEnabled ? "true" : "false"}
+          />
           <StatusRow label="Secret redaction" value={diagnostics.system.secretRedaction} />
         </SafeStatusCard>
       </div>

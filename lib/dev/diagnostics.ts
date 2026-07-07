@@ -50,7 +50,14 @@ export async function getDeveloperDiagnostics(access: DeveloperAccess) {
     },
     system: {
       supabaseConfigured: isSupabaseConfigured(),
+      supabaseUrlConfigured: hasValue(process.env.NEXT_PUBLIC_SUPABASE_URL),
+      supabaseAnonKeyConfigured:
+        hasValue(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) ||
+        hasValue(process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY),
+      serviceRoleConfigured: hasValue(process.env.SUPABASE_SERVICE_ROLE_KEY),
       nodeEnv: process.env.NODE_ENV ?? "development",
+      devDiagnosticsEnabled: isEnabled(process.env.ENABLE_DEV_DIAGNOSTICS),
+      devDiagnosticsInProductionEnabled: isEnabled(process.env.ENABLE_DEV_DIAGNOSTICS_IN_PRODUCTION),
       secretRedaction: "enabled"
     },
     i18n: i18nStatus

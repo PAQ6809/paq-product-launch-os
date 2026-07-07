@@ -184,7 +184,11 @@ function safeLocale(locale: string) {
 }
 
 function assertProductionDevDiagnosticsEnabled() {
-  if (isProductionRuntime() && process.env.ENABLE_DEV_DIAGNOSTICS !== "true") {
+  if (
+    isProductionRuntime() &&
+    (process.env.ENABLE_DEV_DIAGNOSTICS !== "true" ||
+      process.env.ENABLE_DEV_DIAGNOSTICS_IN_PRODUCTION !== "true")
+  ) {
     notFound();
   }
 }

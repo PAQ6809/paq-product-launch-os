@@ -39,6 +39,8 @@ export default async function HelpDiagnosticsPage({ params }: { params: Promise<
             <StatusRow label="HELP_AI_PROVIDER" value={diagnostics.providers.helpAIProvider} />
             <StatusRow label="Public Help AI enabled" value={diagnostics.providers.publicHelpAIEnabled ? "true" : "false"} />
             <StatusRow label="NVIDIA key configured" value={diagnostics.providers.nvidiaKeyConfigured ? "true" : "false"} />
+            <StatusRow label="Supabase configured" value={diagnostics.system.supabaseConfigured ? "true" : "false"} />
+            <StatusRow label="Service role configured" value={diagnostics.system.serviceRoleConfigured ? "true" : "false"} />
           </dl>
         </section>
 
@@ -49,6 +51,12 @@ export default async function HelpDiagnosticsPage({ params }: { params: Promise<
           </div>
           <dl className="mt-4 grid gap-3">
             <StatusRow label="Secret redaction" value={diagnostics.system.secretRedaction} />
+            <StatusRow label="NODE_ENV" value={diagnostics.system.nodeEnv} />
+            <StatusRow label="Dev diagnostics" value={diagnostics.system.devDiagnosticsEnabled ? "true" : "false"} />
+            <StatusRow
+              label="Diagnostics in production"
+              value={diagnostics.system.devDiagnosticsInProductionEnabled ? "true" : "false"}
+            />
             <StatusRow label="Help rate limit" value={diagnostics.rateLimit.helpChat.enabled ? "enabled" : "disabled"} />
             <StatusRow label="Window seconds" value={String(diagnostics.rateLimit.helpChat.windowSeconds)} />
             <StatusRow label="Max requests" value={String(diagnostics.rateLimit.helpChat.maxRequests)} />
